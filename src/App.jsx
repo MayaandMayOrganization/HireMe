@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
 import { Amplify } from 'aws-amplify';
 import { awsConfig } from './aws-config';
+import { Login, SignUp } from './AuthComponents';
 Amplify.configure({
     Auth: {
         Cognito: {
@@ -11,7 +12,7 @@ Amplify.configure({
         }
     }
 });
-import { Login, SignUp } from './AuthComponents';
+
 
 
 const GlobalStyle = createGlobalStyle`

@@ -26,42 +26,31 @@ const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // 1. בדיקה מה יוצא מהאינפוטים
-    const user = email.trim();
-    const pass = password.trim();
-
-    console.log("--- DEBUG START ---");
-    console.log("Input Email:", email);
-    console.log("Processed Username for Cognito:", user);
-    console.log("Password Length:", pass.length);
-    console.log("App Client ID being used:", 'sb893tp11fni580ojjfpp9u52');
+    // גזירת שם המשתמש למקרה שהוכנס מייל (כמו שעשינו ב-SignUp)
+    let usernameToQuery = email.trim();
+    if (usernameToQuery.includes('@')) {
+      usernameToQuery = usernameToQuery.split('@')[0];
+    }
 
     try {
-      const result = await signIn({ username: user, password: pass });
-      console.log("Login Result:", result);
+      const result = await signIn({ 
+        username: usernameToQuery, 
+        password: password.trim() 
+      });
+      console.log("Login Success!", result);
       onSuccess();
     } catch (err) {
-      // 2. פירוט השגיאה המלאה מהשרת של אמזון
-      console.error("--- COGNITO ERROR ---");
-      console.error("Error Name:", err.name);
-      console.error("Error Message:", err.message);
-      console.error("Full Error Object:", err);
-      
-      // הודעה חכמה למשתמש לפי סוג השגיאה
+      console.error("Cognito Error:", err);
       if (err.name === 'UserNotConfirmedException') {
-        alert("המשתמש קיים אבל לא מאומת! כנסי ל-AWS ותלחצי על Confirm User.");
-      } else if (err.name === 'NotAuthorizedException') {
-        alert("סיסמה לא נכונה או משתמש חסום.");
-      } else if (err.name === 'UserNotFoundException') {
-        alert("המשתמש " + user + " בכלל לא קיים ב-User Pool הזה.");
+        alert("המשתמש לא מאומת במערכת.");
       } else {
-        alert("שגיאת מערכת: " + err.message);
+        alert("שגיאת התחברות: " + err.message);
       }
     } finally {
       setLoading(false);
-      console.log("--- DEBUG END ---");
     }
   };
+
   return (
     <form onSubmit={handleLogin}>
       <h1 style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Welcome Back</h1>
