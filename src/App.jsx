@@ -1,17 +1,6 @@
 import React, { useState } from 'react';
 import styled, { createGlobalStyle } from 'styled-components';
-import { Amplify } from 'aws-amplify';
-import { awsConfig } from './aws-config';
 import { Login, SignUp } from './AuthComponents';
-Amplify.configure({
-    Auth: {
-        Cognito: {
-            userPoolId: 'us-east-1_u56lBJUdL',
-            userPoolClientId: 'sb893tp11fni580ojjfpp9u52', // <--- זה ה-App Client ID
-            region: 'us-east-1' 
-        }
-    }
-});
 
 
 
