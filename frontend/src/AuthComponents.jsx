@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { signIn, signUp, confirmSignUp } from 'aws-amplify/auth';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 
 const InputGroup = styled.div` margin-bottom: 1.2rem; `;
 const Label = styled.label` font-size: 0.7rem; color: #a5abbd; display: block; margin-bottom: 0.5rem; text-transform: uppercase; `;
@@ -143,4 +144,34 @@ export const SignUp = ({ onSwitch }) => {
       </p>
     </form>
   );
+
+  async getCurrentUser() {
+    try {
+    const attributes = await fetchUserAttributes();
+    
+    return {
+        fullName: attributes.name || "User",
+        profession: attributes['custom:profession'] || "Professional",
+        email: attributes.email,
+    };
+    } catch (error) {
+        return null;
+    }
+  }
 };
+
+export const getCurrentUser = async () => {
+  try {
+    const attributes = await fetchUserAttributes();
+    
+    return {
+      fullName: attributes.name || "User",
+      profession: attributes['custom:profession'] || "Professional",
+      email: attributes.email,
+    };
+  } catch (error) {
+    console.error("Auth error:", error);
+    return null;
+  }
+};
+ 
