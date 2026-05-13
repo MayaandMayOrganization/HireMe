@@ -3,7 +3,7 @@ import {
   LiveKitRoom, 
   ControlBar, 
   ParticipantTile,
-  AudioConference,
+  RoomAudioRenderer,
   useTracks,
   useTranscriptions,
   GridLayout
@@ -53,9 +53,19 @@ function LiveTranscription() {
   );
 }
 
-const InterviewPage = ({ token }) => {
+const InterviewPage = ({ token, onBack }) => {
     const [isStarted, setIsStarted] = useState(false);
     const serverUrl = "wss://hireme-khyjrqi7.livekit.cloud";
+
+    if (!token) {
+        return (
+            <div style={{ textAlign: 'center', marginTop: '100px', color: 'white' }}>
+                <h2>No Session Token Found</h2>
+                <p>Waiting for the Lambda/Manual token to arrive...</p>
+                <button onClick={onBack} style={{marginTop: '20px'}}>Go Back</button>
+            </div>
+        );
+    }
 
     if (!isStarted) {
         return (
@@ -80,13 +90,13 @@ const InterviewPage = ({ token }) => {
                 token={token}
                 serverUrl={serverUrl}
                 connect={true}
-                data-lk-theme="default"
-                onConnected={() => console.log("Connected!")}
+                metadata={JSON.stringify({ agent_name: "my-agent" })} 
+                onConnected={() => console.log("Frontend joined!")}
                 onError={(err) => console.error("Room Error:", err)}
             >
             
                 <MyVideoLayout />
-                <AudioConference />
+                <RoomAudioRenderer />
                 <ControlBar controls={{ screenShare: false }} />
                 <LiveTranscription />
         </LiveKitRoom>
