@@ -1,51 +1,49 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { signIn, signUp, confirmSignUp } from 'aws-amplify/auth';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 
-const InputGroup = styled.div` margin-bottom: 1.2rem; `;
-const Label = styled.label` font-size: 0.7rem; color: #a5abbd; display: block; margin-bottom: 0.5rem; text-transform: uppercase; `;
-const Input = styled.input`
-  width: 100%; padding: 0.85rem; background: #000; border: 1px solid #424858;
-  border-radius: 10px; color: white; font-size: 0.95rem;
-  &:focus { outline: none; border-color: #5bf4de; }
-`;
-const PrimaryButton = styled.button`
-  width: 100%; padding: 0.85rem; background: linear-gradient(to right, #5bf4de, #11c9b4);
-  color: #003a33; font-weight: 800; border-radius: 10px; border: none; cursor: pointer;
-  margin-top: 0.5rem; transition: transform 0.1s;
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
-  &:active { transform: scale(0.98); }
-`;
+export const getCurrentUser = async () => {
+  try {
+    const attributes = await fetchUserAttributes();
+
+    return {
+      fullName: attributes.name || 'User',
+      profession: attributes['custom:profession'] || 'Professional',
+      email: attributes.email,
+    };
+  } catch (error) {
+    console.error('Auth error:', error);
+    return null;
+  }
+};
 
 export const Login = ({ onSwitch, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // גזירת שם המשתמש למקרה שהוכנס מייל (כמו שעשינו ב-SignUp)
     let usernameToQuery = email.trim();
     if (usernameToQuery.includes('@')) {
       usernameToQuery = usernameToQuery.split('@')[0];
     }
 
     try {
-      const result = await signIn({ 
-        username: usernameToQuery, 
-        password: password.trim() 
+      await signIn({
+        username: usernameToQuery,
+        password: password.trim(),
       });
-      console.log("Login Success!", result);
-      onSuccess();
+      const profile = await getCurrentUser();
+      onSuccess(profile);
     } catch (err) {
-      console.error("Cognito Error:", err);
+      console.error('Cognito Error:', err);
       if (err.name === 'UserNotConfirmedException') {
-        alert("המשתמש לא מאומת במערכת.");
+        alert('המשתמש לא מאומת במערכת.');
       } else {
-        alert("שגיאת התחברות: " + err.message);
+        alert('שגיאת התחברות: ' + err.message);
       }
     } finally {
       setLoading(false);
@@ -56,24 +54,41 @@ const handleLogin = async (e) => {
     <form onSubmit={handleLogin}>
       <h1 style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Welcome Back</h1>
       <p style={{ color: '#a5abbd', marginBottom: '2rem' }}>Sign in to continue to HireMe.</p>
-      <InputGroup>
-        <Label>Email or Username</Label>
-        <Input type="text" placeholder="mayage2" onChange={e => setEmail(e.target.value)} required />
-      </InputGroup>
-      <InputGroup>
-        <Label>Password</Label>
-        <Input type="password" placeholder="••••••••" onChange={e => setPassword(e.target.value)} required />
-      </InputGroup>
-      <PrimaryButton type="submit" disabled={loading}>{loading ? 'AUTHENTICATING...' : 'SIGN IN'}</PrimaryButton>
+      <div className="auth-field-group">
+        <label className="auth-label">Email or Username</label>
+        <input
+          className="auth-input"
+          type="text"
+          placeholder="mayage2"
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="auth-field-group">
+        <label className="auth-label">Password</label>
+        <input
+          className="auth-input"
+          type="password"
+          placeholder="••••••••"
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <button type="submit" className="auth-primary-btn" disabled={loading}>
+        {loading ? 'AUTHENTICATING...' : 'SIGN IN'}
+      </button>
       <p style={{ textAlign: 'center', marginTop: '1.5rem', color: '#a5abbd', fontSize: '0.85rem' }}>
-        New to HireMe? <span style={{ color: '#5bf4de', fontWeight: 'bold', cursor: 'pointer' }} onClick={onSwitch}>Create Account</span>
+        New to HireMe?{' '}
+        <span style={{ color: '#5bf4de', fontWeight: 'bold', cursor: 'pointer' }} onClick={onSwitch}>
+          Create Account
+        </span>
       </p>
     </form>
   );
 };
 
 export const SignUp = ({ onSwitch }) => {
-  const [step, setStep] = useState('form'); 
+  const [step, setStep] = useState('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -87,17 +102,20 @@ export const SignUp = ({ onSwitch }) => {
       await signUp({
         username,
         password,
-        options: { 
-          userAttributes: { 
+        options: {
+          userAttributes: {
             email,
             name: username,
-            given_name: username
-          } 
-        }
+            given_name: username,
+          },
+        },
       });
       setStep('confirm');
-    } catch (err) { alert("שגיאה בהרשמה: " + err.message); }
-    finally { setLoading(false); }
+    } catch (err) {
+      alert('שגיאה בהרשמה: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirm = async (e) => {
@@ -106,10 +124,13 @@ export const SignUp = ({ onSwitch }) => {
     try {
       const username = email.split('@')[0].trim();
       await confirmSignUp({ username, confirmationCode: code });
-      alert("Account verified! You can now sign in.");
+      alert('Account verified! You can now sign in.');
       onSwitch();
-    } catch (err) { alert("Code is incorrect: " + err.message); }
-    finally { setLoading(false); }
+    } catch (err) {
+      alert('Code is incorrect: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === 'confirm') {
@@ -117,11 +138,18 @@ export const SignUp = ({ onSwitch }) => {
       <form onSubmit={handleConfirm}>
         <h1 style={{ marginBottom: '1rem' }}>Verify Email</h1>
         <p style={{ color: '#a5abbd', marginBottom: '1.5rem' }}>Enter the code sent to your email.</p>
-        <InputGroup>
-          <Label>Verification Code</Label>
-          <Input placeholder="123456" onChange={e => setCode(e.target.value)} required />
-        </InputGroup>
-        <PrimaryButton type="submit" disabled={loading}>VERIFY</PrimaryButton>
+        <div className="auth-field-group">
+          <label className="auth-label">Verification Code</label>
+          <input
+            className="auth-input"
+            placeholder="123456"
+            onChange={(e) => setCode(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="auth-primary-btn" disabled={loading}>
+          VERIFY
+        </button>
       </form>
     );
   }
@@ -130,48 +158,35 @@ export const SignUp = ({ onSwitch }) => {
     <form onSubmit={handleSignUp}>
       <h1 style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Join HireMe</h1>
       <p style={{ color: '#a5abbd', marginBottom: '2rem' }}>Start your AI interview journey today.</p>
-      <InputGroup>
-        <Label>Institutional Email</Label>
-        <Input type="email" placeholder="name@mta.ac.il" onChange={e => setEmail(e.target.value)} required />
-      </InputGroup>
-      <InputGroup>
-        <Label>Password</Label>
-        <Input type="password" placeholder="At least 8 characters" onChange={e => setPassword(e.target.value)} required />
-      </InputGroup>
-      <PrimaryButton type="submit" disabled={loading}>CREATE ACCOUNT</PrimaryButton>
+      <div className="auth-field-group">
+        <label className="auth-label">Institutional Email</label>
+        <input
+          className="auth-input"
+          type="email"
+          placeholder="name@mta.ac.il"
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="auth-field-group">
+        <label className="auth-label">Password</label>
+        <input
+          className="auth-input"
+          type="password"
+          placeholder="At least 8 characters"
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <button type="submit" className="auth-primary-btn" disabled={loading}>
+        CREATE ACCOUNT
+      </button>
       <p style={{ textAlign: 'center', marginTop: '1.5rem', color: '#a5abbd', fontSize: '0.85rem' }}>
-        Already a member? <span style={{ color: '#5bf4de', fontWeight: 'bold', cursor: 'pointer' }} onClick={onSwitch}>Sign In</span>
+        Already a member?{' '}
+        <span style={{ color: '#5bf4de', fontWeight: 'bold', cursor: 'pointer' }} onClick={onSwitch}>
+          Sign In
+        </span>
       </p>
     </form>
   );
-
-  async getCurrentUser() {
-    try {
-    const attributes = await fetchUserAttributes();
-    
-    return {
-        fullName: attributes.name || "User",
-        profession: attributes['custom:profession'] || "Professional",
-        email: attributes.email,
-    };
-    } catch (error) {
-        return null;
-    }
-  }
 };
-
-export const getCurrentUser = async () => {
-  try {
-    const attributes = await fetchUserAttributes();
-    
-    return {
-      fullName: attributes.name || "User",
-      profession: attributes['custom:profession'] || "Professional",
-      email: attributes.email,
-    };
-  } catch (error) {
-    console.error("Auth error:", error);
-    return null;
-  }
-};
- 
