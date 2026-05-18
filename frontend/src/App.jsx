@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Login, SignUp, getCurrentUser } from './AuthComponents';
+import { Login, SignUp, getCurrentUser, logout } from './AuthComponents';
 import Dashboard from './components/Dashboard';
 import InterviewPage from './InterviewPage';
 
@@ -60,6 +60,20 @@ function App() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setIsLoggedIn(false);
+      setUserProfile(null);
+      setRoomToken(null);
+      setMainView('dashboard');
+      setAuthScreen('login');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#080e1c] flex items-center justify-center">
@@ -112,9 +126,17 @@ function App() {
       ) : (
         <>
           {mainView === 'dashboard' ? (
-            <Dashboard user={userProfile} onStartInterview={handleStartInterview} />
+            <Dashboard
+              user={userProfile}
+              onStartInterview={handleStartInterview}
+              onLogout={handleLogout}
+            />
           ) : (
-            <InterviewPage token={roomToken} onBack={() => setMainView('dashboard')} />
+            <InterviewPage
+              token={roomToken}
+              onBack={() => setMainView('dashboard')}
+              onLogout={handleLogout}
+            />
           )}
         </>
       )}

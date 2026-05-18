@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { signIn, signUp, confirmSignUp } from 'aws-amplify/auth';
-import { fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, signOut, fetchUserAttributes } from 'aws-amplify/auth';
+
+export const logout = async () => {
+  await signOut();
+};
 
 export const getCurrentUser = async () => {
   try {
@@ -51,7 +54,7 @@ export const Login = ({ onSwitch, onSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleLogin}>
+    <form onSubmit={handleLogin} autoComplete="off">
       <h1 style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Welcome Back</h1>
       <p style={{ color: '#a5abbd', marginBottom: '2rem' }}>Sign in to continue to HireMe.</p>
       <div className="auth-field-group">
@@ -59,8 +62,10 @@ export const Login = ({ onSwitch, onSuccess }) => {
         <input
           className="auth-input"
           type="text"
-          placeholder="mayage2"
+          name="username"
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="off"
           required
         />
       </div>
@@ -69,8 +74,10 @@ export const Login = ({ onSwitch, onSuccess }) => {
         <input
           className="auth-input"
           type="password"
-          placeholder="••••••••"
+          name="password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
           required
         />
       </div>
