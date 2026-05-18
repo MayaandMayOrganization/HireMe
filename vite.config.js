@@ -14,6 +14,6 @@ export default defineConfig({
   ],
   root: resolve(__dirname, 'frontend'),
   css: {
-    postcss: resolve(__dirname, 'postcss.config.js'),
+    postcss: resolve(__dirname, 'frontend/postcss.config.js'),
   },
 })
