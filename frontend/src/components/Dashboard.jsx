@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 import avatarSimulationPic from '../assets/avatarImage.png'; 
 import cvDraftPic from '../assets/fakeCv.png';
 
 const mockData = {
   user: {
-    fullName: "Alex Rivera",
-    profession: "Senior Product Designer Path",
+    profession: "Software Engineer", 
     stats: { interviews: 12, offers: 4, score: 8.5 }
   },
   analytics: {
@@ -26,7 +26,39 @@ const mockData = {
   ]
 };
 
-const Dashboard = ({ user, onStartInterview, onLogout }) => {
+const Dashboard = ({ onStartInterview, onLogout }) => {
+  const [realUser, setRealUser] = useState({ 
+    fullName: 'Loading...', 
+    profession: 'Loading...', 
+    initials: '??' 
+  });
+  const [profileImg, setProfileImg] = useState(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    async function getUserDetails() {
+      try {
+        const attributes = await fetchUserAttributes();
+        const fullName = attributes['name'] || "User";
+        const profession = attributes['custom:profession'] || "Software Engineer";
+        const nameParts = fullName.split(' ');
+        const initials = nameParts.length >= 2 
+          ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+          : fullName.substring(0, 2).toUpperCase();
+
+        setRealUser({ 
+          fullName: fullName, 
+          profession: profession, 
+          initials: initials 
+        });
+      } catch (error) {
+        console.error("Error fetching user from Amplify", error);
+        setRealUser({ fullName: "Guest User", profession: "Guest", initials: "GU" });
+      }
+    }
+    getUserDetails();
+  }, []);
+
   const theme = {
     background: "#080e1c",
     surface: "#12192a",
@@ -37,8 +69,6 @@ const Dashboard = ({ user, onStartInterview, onLogout }) => {
   };
 
   const [hasDraft, setHasDraft] = useState(true);
-  const [profileImg, setProfileImg] = useState(null);
-  const fileInputRef = useRef(null);
 
   const handlePhotoClick = () => {
     fileInputRef.current.click(); 
@@ -77,7 +107,7 @@ const Dashboard = ({ user, onStartInterview, onLogout }) => {
             <span className="text-2xl font-black tracking-tighter" style={{ color: theme.primary }}>HireMe</span>
             <div className="h-6 w-[1px] bg-[#424858]/30 hidden md:block"></div>
             <h1 className="text-sm font-bold hidden md:block">
-              Hello, {user?.fullName || mockData.user.fullName}
+              Hello, {realUser.fullName}
             </h1>
           </div>
           <div className="flex items-center gap-4">
@@ -96,7 +126,7 @@ const Dashboard = ({ user, onStartInterview, onLogout }) => {
               onClick={handlePhotoClick}
               className="w-8 h-8 rounded-full bg-[#1c2a41] border border-[#5bf4de]/20 flex items-center justify-center text-[10px] font-bold text-[#5bf4de] cursor-pointer overflow-hidden transition-all hover:border-[#5bf4de]"
             >
-              {profileImg ? <img src={profileImg} alt="header profile" className="w-full h-full object-cover" /> : "AR"}
+              {profileImg ? <img src={profileImg} alt="header profile" className="w-full h-full object-cover" /> : realUser.initials}
             </div>
           </div>
         </div>
@@ -153,16 +183,17 @@ const Dashboard = ({ user, onStartInterview, onLogout }) => {
               <input type="file" ref={fileInputRef} onChange={handlePhotoChange} className="hidden" accept="image/*" />
               <div className="relative mb-4 group cursor-pointer" onClick={handlePhotoClick}>
                 <div className="w-24 h-24 rounded-xl bg-[#1c2a41] flex items-center justify-center border-2 border-[#5bf4de]/20 text-3xl font-black text-[#5bf4de] overflow-hidden transition-all group-hover:border-[#5bf4de]/60">
-                  {profileImg ? <img src={profileImg} alt="profile" className="w-full h-full object-cover" /> : "AR"}
+                  {profileImg ? <img src={profileImg} alt="profile" className="w-full h-full object-cover" /> : realUser.initials}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
                     <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
                   </div>
                 </div>
                 <div className="absolute -bottom-2 right-0 bg-[#5bf4de] text-[#080e1c] px-2 py-0.5 rounded text-[9px] font-black">VERIFIED</div>
               </div>
-              <h2 className="text-xl font-black">{mockData.user.fullName}</h2>
-              <p className="text-[#a5abbd] text-xs mb-6">{mockData.user.profession}</p>
-              
+              <h2 className="text-xl font-black">{realUser.fullName}</h2>
+              <p className="text-[#a5abbd] text-xs mb-6 uppercase tracking-wider font-bold">
+                {realUser.profession}
+              </p>
               <div className="w-full space-y-2 mb-8">
                 <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                   <span className="text-[#a5abbd]">progress</span>
