@@ -4,7 +4,7 @@ import asyncio
 
 from dotenv import load_dotenv
 from livekit import rtc, api
-from livekit.plugins import simli, deepgram, cartesia, google, openai
+from livekit.plugins import simli, deepgram, cartesia, openai
 from livekit.agents import (
     Agent,
     AgentServer,
@@ -59,12 +59,16 @@ async def entrypoint(ctx: JobContext):
         "room": ctx.room.name,
     }
 
-    # Set up a voice AI pipeline using OpenAI, Cartesia, Deepgram, and the LiveKit turn detector
+    # Voice pipeline: Deepgram (STT) → OpenAI (LLM) → Cartesia (TTS)
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY is not set. Add it to your .env file.")
+
     session = AgentSession(
         stt=deepgram.STT(),
-        llm = google.LLM(
-            model="gemini-2.5-flash",
-            api_key=os.getenv("GOOGLE_API_KEY")
+        llm=openai.LLM(
+            model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+            api_key=openai_api_key,
         ),
         tts=cartesia.TTS(voice="f786b574-daa5-4673-aa0c-cbe3e8534c02"),
         turn_detection=MultilingualModel(),
