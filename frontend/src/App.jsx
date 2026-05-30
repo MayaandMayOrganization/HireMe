@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Login, SignUp, getCurrentUser, logout } from './AuthComponents';
 import Dashboard from './components/Dashboard';
 import InterviewPage from './InterviewPage';
-import HRFlashcards from './components/HRFlashcards';
+import HRFlashcards from './components/HRFlashCards';
 
 function App() {
   const [authScreen, setAuthScreen] = useState('login');
