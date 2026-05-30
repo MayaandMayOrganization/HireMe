@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Login, SignUp, getCurrentUser, logout } from './AuthComponents';
 import Dashboard from './components/Dashboard';
 import InterviewPage from './InterviewPage';
+import HRFlashcards from './components/HRFlashcards';
 
 function App() {
   const [authScreen, setAuthScreen] = useState('login');
@@ -129,8 +130,19 @@ function App() {
             <Dashboard
               user={userProfile}
               onStartInterview={handleStartInterview}
+              onShowHR={() => setMainView('hr_questions')} 
               onLogout={handleLogout}
             />
+          ) : mainView === 'hr_questions' ? (
+            <div className="min-h-screen bg-[#080e1c] pt-20">
+              <button 
+                onClick={() => setMainView('dashboard')}
+                className="ml-10 mb-6 flex items-center gap-2 text-[#5bf4de] hover:underline"
+              >
+                <span className="material-symbols-outlined">arrow_back</span> Back to Dashboard
+              </button>
+              <HRFlashcards />
+            </div>
           ) : (
             <InterviewPage
               token={roomToken}

@@ -26,7 +26,7 @@ const mockData = {
   ]
 };
 
-const Dashboard = ({ onStartInterview, onLogout }) => {
+const Dashboard = ({ onStartInterview, onLogout, onShowHR }) => {
   const [realUser, setRealUser] = useState({ 
     fullName: 'Loading...', 
     profession: 'Loading...', 
@@ -163,7 +163,7 @@ const Dashboard = ({ onStartInterview, onLogout }) => {
                     <span className="material-symbols-outlined text-sm">code</span>
                     Technical Questions
                   </button>
-                  <button onClick={handleEnterSimulation} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-[#a5abbd] hover:text-[#5bf4de] hover:bg-[#080e1c]/50 rounded-lg transition-all uppercase tracking-wider whitespace-nowrap">
+                  <button onClick={onShowHR} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-[#a5abbd] hover:text-[#5bf4de] hover:bg-[#080e1c]/50 rounded-lg transition-all uppercase tracking-wider whitespace-nowrap">
                     <span className="material-symbols-outlined text-sm">record_voice_over</span>
                     HR Questions
                   </button>
@@ -218,7 +218,7 @@ const Dashboard = ({ onStartInterview, onLogout }) => {
                   <span className="text-sm font-semibold">Technical Questions</span>
                   <span className="material-symbols-outlined text-sm text-[#5bf4de]">chevron_right</span>
                 </button>
-                <button onClick={handleEnterSimulation} className="w-full text-left p-3 bg-black/30 hover:bg-black/50 rounded-lg flex justify-between items-center transition-all border border-transparent hover:border-[#5bf4de]/30">
+                <button onClick={onShowHR} className="w-full text-left p-3 bg-black/30 hover:bg-black/50 rounded-lg flex justify-between items-center transition-all border border-transparent hover:border-[#5bf4de]/30">
                   <span className="text-sm font-semibold">HR Questions</span>
                   <span className="material-symbols-outlined text-sm text-[#5bf4de]">chevron_right</span>
                 </button>
