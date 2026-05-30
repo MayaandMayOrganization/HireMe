@@ -26,7 +26,7 @@ const mockData = {
   ]
 };
 
-const Dashboard = ({ onStartInterview, onLogout, onShowHR }) => {
+const Dashboard = ({ onStartInterview, onLogout, onShowHR, isStartingInterview }) => {
   const [realUser, setRealUser] = useState({ 
     fullName: 'Loading...', 
     profession: 'Loading...', 
@@ -92,6 +92,7 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR }) => {
 
   // This is the function that triggers the view change in App.js
   const handleEnterSimulation = () => {
+    if (isStartingInterview) return;
     console.log("Starting Avatar Simulation...");
     if (onStartInterview) {
       onStartInterview();
@@ -143,6 +144,7 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR }) => {
               <button 
                 key={item.label} 
                 onClick={item.label === 'AI Avatar Simulation' ? handleEnterSimulation : undefined}
+                disabled={item.label === 'AI Avatar Simulation' && isStartingInterview}
                 className="flex items-center gap-2 px-4 py-2 text-[#a5abbd] hover:text-white hover:bg-[#080e1c]/50 rounded-lg transition-all text-xs font-bold uppercase tracking-wider whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-lg">{item.icon}</span>
@@ -281,7 +283,13 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR }) => {
               <div className="absolute inset-0 flex flex-col items-center justify-center z-20 p-6 text-center">
                 <h3 className="text-xl font-black text-white mb-2">Practice with Ava</h3>
                 <p className="text-[#e0e5f9] text-[11px] mb-6 max-w-[280px] leading-relaxed opacity-90">Ready to test your skills? Start a real-time session with Ava.</p>
-                <button onClick={handleEnterSimulation} className="px-6 py-2.5 bg-[#5bf4de] text-[#080e1c] rounded-full text-[11px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Enter Avatar Simulation</button>
+                <button
+                  onClick={handleEnterSimulation}
+                  disabled={isStartingInterview}
+                  className="px-6 py-2.5 bg-[#5bf4de] text-[#080e1c] rounded-full text-[11px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-wait"
+                >
+                  {isStartingInterview ? 'Connecting…' : 'Enter Avatar Simulation'}
+                </button>
               </div>
               <div className="absolute top-4 left-4 flex gap-2 z-30">
                  <span className="bg-[#5bf4de]/90 text-[#080e1c] text-[9px] font-black px-2 py-1 rounded shadow-lg">LIVE SIMULATION</span>

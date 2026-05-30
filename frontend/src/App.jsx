@@ -3,14 +3,17 @@ import { Login, SignUp, getCurrentUser, logout } from './AuthComponents';
 import Dashboard from './components/Dashboard';
 import InterviewPage from './InterviewPage';
 import HRFlashcards from './components/HRFlashCards';
+import { AVATAR_CONTEXT_URL, LIVEKIT_TOKEN_URL } from './config';
 
 function App() {
   const [authScreen, setAuthScreen] = useState('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [roomToken, setRoomToken] = useState(null);
+  const [avatarContext, setAvatarContext] = useState(null);
   const [mainView, setMainView] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -31,26 +34,59 @@ function App() {
   }, []);
 
   const handleStartInterview = async () => {
-    setIsLoading(true);
+    setIsStartingInterview(true);
     try {
-      const response = await fetch(
-        'https://iexzogfkyuunk7b5sunmodusay0whgku.lambda-url.us-east-1.on.aws/'
-      );
+      const profile = (await getCurrentUser()) || userProfile;
+      const fallbackContext = {
+        name: profile?.fullName || 'Candidate',
+        role: profile?.profession || 'General Position',
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch token');
+      let context = fallbackContext;
+      if (profile?.userId && profile?.sortKey) {
+        const contextUrl = `${AVATAR_CONTEXT_URL}?userId=${encodeURIComponent(profile.userId)}&sortKey=${encodeURIComponent(profile.sortKey)}`;
+        try {
+          const contextRes = await fetch(contextUrl);
+          if (contextRes.ok) {
+            context = await contextRes.json();
+            console.log('Avatar context from Lambda:', context);
+          } else {
+            console.warn('GetAvatarContext failed, using Cognito profile fallback');
+          }
+        } catch (contextErr) {
+          console.warn('GetAvatarContext unavailable, using Cognito profile fallback:', contextErr);
+        }
       }
 
-      const data = await response.json();
+      const tokenRes = await fetch(LIVEKIT_TOKEN_URL, {
+        method: import.meta.env.DEV ? 'POST' : 'GET',
+        headers: import.meta.env.DEV ? { 'Content-Type': 'application/json' } : undefined,
+        body: import.meta.env.DEV ? JSON.stringify(context) : undefined,
+      });
+      if (!tokenRes.ok) {
+        throw new Error(`LiveKit token request failed (${tokenRes.status})`);
+      }
+
+      const data = await tokenRes.json();
+      if (!data?.token) {
+        throw new Error('LiveKit token response did not include a token');
+      }
+      if (data.room) {
+        console.log('LiveKit room for this session:', data.room);
+      }
+
+      setAvatarContext(context);
       setRoomToken(data.token);
       setMainView('interview');
     } catch (err) {
       console.error('Error starting interview:', err);
+      const detail = err?.message || String(err);
       alert(
-        'Could not connect to the avatar service. Please ensure the backend is running.'
+        `Could not start the interview session.\n\n${detail}\n\n` +
+          'Check your network connection. The Python agent (hireme-agent) only needs to be running after you join the room.'
       );
     } finally {
-      setIsLoading(false);
+      setIsStartingInterview(false);
     }
   };
 
@@ -70,6 +106,7 @@ function App() {
       setIsLoggedIn(false);
       setUserProfile(null);
       setRoomToken(null);
+      setAvatarContext(null);
       setMainView('dashboard');
       setAuthScreen('login');
     }
@@ -130,6 +167,7 @@ function App() {
             <Dashboard
               user={userProfile}
               onStartInterview={handleStartInterview}
+              isStartingInterview={isStartingInterview}
               onShowHR={() => setMainView('hr_questions')} 
               onLogout={handleLogout}
             />
@@ -146,6 +184,7 @@ function App() {
           ) : (
             <InterviewPage
               token={roomToken}
+              avatarContext={avatarContext}
               onBack={() => setMainView('dashboard')}
               onLogout={handleLogout}
             />

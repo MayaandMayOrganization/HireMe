@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { signIn, signUp, confirmSignUp, signOut, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, signOut, fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
+
+/** DynamoDB HireMe_Table uses the Cognito username for both User id and Sort Key. */
+function getDynamoUserKeys(attributes, sub) {
+  const email = attributes.email || '';
+  const username = email.includes('@')
+    ? email.split('@')[0]
+    : attributes.preferred_username || attributes.name || sub || '';
+
+  return {
+    userId: username,
+    sortKey: attributes['custom:sortKey'] || username,
+  };
+}
 
 export const logout = async () => {
   await signOut();
@@ -8,11 +21,16 @@ export const logout = async () => {
 export const getCurrentUser = async () => {
   try {
     const attributes = await fetchUserAttributes();
+    const session = await fetchAuthSession();
+    const sub = session.tokens?.idToken?.payload?.sub;
+    const { userId, sortKey } = getDynamoUserKeys(attributes, sub);
 
     return {
       fullName: attributes.name || 'User',
       profession: attributes['custom:profession'] || 'Professional',
       email: attributes.email,
+      userId,
+      sortKey,
     };
   } catch (error) {
     console.error('Auth error:', error);
