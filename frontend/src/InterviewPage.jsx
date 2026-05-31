@@ -4,6 +4,7 @@ import {
   ControlBar, 
   ParticipantTile,
   RoomAudioRenderer,
+  AudioTrack,
   useTranscriptions,
   useVoiceAssistant,
   useLocalParticipant,
@@ -107,6 +108,24 @@ function InterviewVideoLayout() {
         </div>
       )}
     </div>
+  );
+}
+
+function AvatarAudioPlayback() {
+  const { audioTrack: assistantAudio } = useVoiceAssistant();
+  const audioTracks = useTracks([Track.Source.Microphone], { onlySubscribed: true });
+  const avatarAudio = audioTracks.find(
+    (ref) => !ref.participant?.isLocal && isAvatarParticipant(ref.participant?.identity),
+  );
+
+  return (
+    <>
+      <RoomAudioRenderer />
+      {assistantAudio && <AudioTrack trackRef={assistantAudio} />}
+      {avatarAudio && avatarAudio !== assistantAudio && (
+        <AudioTrack trackRef={avatarAudio} />
+      )}
+    </>
   );
 }
 
@@ -288,7 +307,7 @@ const InterviewPage = ({ token, avatarContext, onBack, onLogout }) => {
             >
                 <MicGateWhileAgentSpeaks />
                 <InterviewVideoLayout />
-                <RoomAudioRenderer />
+                <AvatarAudioPlayback />
                 <ControlBar controls={{ screenShare: false }} />
                 <LiveTranscription />
         </LiveKitRoom>
