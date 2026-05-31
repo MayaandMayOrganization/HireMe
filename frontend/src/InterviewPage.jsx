@@ -102,6 +102,11 @@ const InterviewPage = ({ token, avatarContext, onBack, onLogout }) => {
     const [isStarted, setIsStarted] = useState(false);
     const [connectionError, setConnectionError] = useState(null);
     const serverUrl = LIVEKIT_URL;
+    const roomMetadata = JSON.stringify({
+      agent_name: 'my-agent',
+      name: avatarContext?.name || 'Candidate',
+      role: avatarContext?.role || 'General Position',
+    });
 
     if (!token) {
         return (
@@ -180,6 +185,7 @@ const InterviewPage = ({ token, avatarContext, onBack, onLogout }) => {
                 token={token}
                 serverUrl={serverUrl}
                 connect={true}
+                metadata={roomMetadata}
                 options={{
                   audioCaptureDefaults: {
                     echoCancellation: true,

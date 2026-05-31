@@ -33,7 +33,9 @@ export const getCurrentUser = async () => {
       sortKey,
     };
   } catch (error) {
-    console.error('Auth error:', error);
+    if (error?.name !== 'UserUnAuthenticatedException') {
+      console.error('Auth error:', error);
+    }
     return null;
   }
 };

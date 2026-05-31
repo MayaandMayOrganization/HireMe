@@ -20,3 +20,11 @@ applications:
       cache:
         paths:
           - node_modules/**/*
+      redirects:
+        # Proxy GetAvatarContext through Amplify (avoids Lambda duplicate CORS headers in browser).
+        - source: '/api/avatar-context'
+          target: 'https://tiqv7tglmz2hb4qmpjrimr5pge0anuak.lambda-url.us-east-1.on.aws/'
+          status: '200'
+        - source: '/api/avatar-context/<*>'
+          target: 'https://tiqv7tglmz2hb4qmpjrimr5pge0anuak.lambda-url.us-east-1.on.aws/<*>'
+          status: '200'

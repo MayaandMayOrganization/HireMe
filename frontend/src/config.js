@@ -7,10 +7,9 @@ const AVATAR_CONTEXT_LAMBDA =
   import.meta.env.VITE_AVATAR_CONTEXT_URL ||
   'https://tiqv7tglmz2hb4qmpjrimr5pge0anuak.lambda-url.us-east-1.on.aws/';
 
-// Local dev uses Vite proxy (see vite.config.js) to bypass Lambda CORS bug.
-export const AVATAR_CONTEXT_URL = import.meta.env.DEV
-  ? '/api/avatar-context'
-  : AVATAR_CONTEXT_LAMBDA;
+// Always use same-origin path. Dev: Vite proxy (vite.config.js). Prod: Amplify rewrite (see plan below).
+// Do NOT call the Lambda URL from the browser — its CORS headers are broken (duplicate Allow-Origin).
+export const AVATAR_CONTEXT_URL = '/api/avatar-context';
 
 const LIVEKIT_TOKEN_LAMBDA =
   import.meta.env.VITE_LIVEKIT_TOKEN_URL ||
