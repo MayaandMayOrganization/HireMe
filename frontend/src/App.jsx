@@ -58,24 +58,11 @@ function App() {
         }
       }
 
-      let tokenRes;
-      if (import.meta.env.DEV) {
-        tokenRes = await fetch(LIVEKIT_TOKEN_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(context),
-        });
-      } else {
-        const tokenParams = new URLSearchParams({
-          name: context.name || 'Candidate',
-          role: context.role || 'General Position',
-        });
-        if (profile?.userId) tokenParams.set('userId', profile.userId);
-
-        tokenRes = await fetch(`${LIVEKIT_TOKEN_URL}?${tokenParams.toString()}`, {
-          method: 'GET',
-        });
-      }
+      const tokenRes = await fetch(LIVEKIT_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(context),
+      });
       if (!tokenRes.ok) {
         throw new Error(`LiveKit token request failed (${tokenRes.status})`);
       }

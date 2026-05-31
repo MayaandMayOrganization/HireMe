@@ -11,11 +11,5 @@ const AVATAR_CONTEXT_LAMBDA =
 // Do NOT call the Lambda URL from the browser — its CORS headers are broken (duplicate Allow-Origin).
 export const AVATAR_CONTEXT_URL = '/api/avatar-context';
 
-const LIVEKIT_TOKEN_LAMBDA =
-  import.meta.env.VITE_LIVEKIT_TOKEN_URL ||
-  'https://iexzogfkyuunk7b5sunmodusay0whgku.lambda-url.us-east-1.on.aws/';
-
-// Local dev mints tokens with name/role embedded (see vite/dev-livekit-token.js).
-export const LIVEKIT_TOKEN_URL = import.meta.env.DEV
-  ? '/api/livekit-token'
-  : LIVEKIT_TOKEN_LAMBDA;
+// Same-origin in dev (Vite) and prod (Amplify rewrite). Embeds name/role in JWT via token Lambda.
+export const LIVEKIT_TOKEN_URL = '/api/livekit-token';
