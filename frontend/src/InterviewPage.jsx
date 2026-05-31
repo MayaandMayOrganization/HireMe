@@ -4,24 +4,60 @@ import {
   ControlBar, 
   ParticipantTile,
   RoomAudioRenderer,
-  useTracks,
   useTranscriptions,
-  GridLayout,
   useVoiceAssistant,
   useLocalParticipant,
   useRemoteParticipants,
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { LIVEKIT_URL } from './config';
 
-function MyVideoLayout() {
-    const tracks = useTracks([Track.Source.Camera]);
+function PublishInterviewMetadata({ avatarContext }) {
+  const { localParticipant } = useLocalParticipant();
+
+  useEffect(() => {
+    if (!localParticipant || !avatarContext) return undefined;
+
+    const metadata = JSON.stringify({
+      agent_name: 'my-agent',
+      name: avatarContext.name || 'Candidate',
+      role: avatarContext.role || 'General Position',
+    });
+
+    localParticipant
+      .setMetadata(metadata)
+      .then(() => console.log('Published participant metadata:', metadata))
+      .catch((err) => console.warn('Failed to publish participant metadata:', err));
+
+    return undefined;
+  }, [localParticipant, avatarContext]);
+
+  return null;
+}
+
+function AgentAvatarVideo() {
+  const { videoTrack, state } = useVoiceAssistant();
+
+  if (!videoTrack) {
+    return (
+      <div
+        style={{
+          height: 'calc(100vh - 200px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#888',
+        }}
+      >
+        Waiting for avatar video… ({state})
+      </div>
+    );
+  }
 
   return (
-    <GridLayout tracks={tracks} style={{ height: 'calc(100vh - 200px)' }}>
-      <ParticipantTile />
-    </GridLayout>
+    <div style={{ height: 'calc(100vh - 200px)' }}>
+      <ParticipantTile trackRef={videoTrack} />
+    </div>
   );
 }
 
@@ -185,8 +221,8 @@ const InterviewPage = ({ token, avatarContext, onBack, onLogout }) => {
                 token={token}
                 serverUrl={serverUrl}
                 connect={true}
-                metadata={roomMetadata}
                 options={{
+                  metadata: roomMetadata,
                   audioCaptureDefaults: {
                     echoCancellation: true,
                     noiseSuppression: true,
@@ -203,7 +239,8 @@ const InterviewPage = ({ token, avatarContext, onBack, onLogout }) => {
                 }}
             >
                 <MicGateWhileAgentSpeaks />
-                <MyVideoLayout />
+                <PublishInterviewMetadata avatarContext={avatarContext} />
+                <AgentAvatarVideo />
                 <RoomAudioRenderer />
                 <ControlBar controls={{ screenShare: false }} />
                 <LiveTranscription />
