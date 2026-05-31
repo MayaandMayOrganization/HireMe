@@ -8,55 +8,60 @@ import {
   useVoiceAssistant,
   useLocalParticipant,
   useRemoteParticipants,
+  useTracks,
 } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { LIVEKIT_URL } from './config';
 
-function PublishInterviewMetadata({ avatarContext }) {
-  const { localParticipant } = useLocalParticipant();
-
-  useEffect(() => {
-    if (!localParticipant || !avatarContext) return undefined;
-
-    const metadata = JSON.stringify({
-      agent_name: 'my-agent',
-      name: avatarContext.name || 'Candidate',
-      role: avatarContext.role || 'General Position',
-    });
-
-    localParticipant
-      .setMetadata(metadata)
-      .then(() => console.log('Published participant metadata:', metadata))
-      .catch((err) => console.warn('Failed to publish participant metadata:', err));
-
-    return undefined;
-  }, [localParticipant, avatarContext]);
-
-  return null;
-}
-
-function AgentAvatarVideo() {
-  const { videoTrack, state } = useVoiceAssistant();
-
-  if (!videoTrack) {
-    return (
-      <div
-        style={{
-          height: 'calc(100vh - 200px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#888',
-        }}
-      >
-        Waiting for avatar video… ({state})
-      </div>
-    );
-  }
+function InterviewVideoLayout() {
+  const { videoTrack: avatarTrack, state } = useVoiceAssistant();
+  const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
+  const localCameraTrack = cameraTracks.find((ref) => ref.participant?.isLocal);
 
   return (
-    <div style={{ height: 'calc(100vh - 200px)' }}>
-      <ParticipantTile trackRef={videoTrack} />
+    <div
+      style={{
+        position: 'relative',
+        height: 'calc(100vh - 200px)',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        backgroundColor: '#1a1a1a',
+      }}
+    >
+      {avatarTrack ? (
+        <ParticipantTile trackRef={avatarTrack} style={{ width: '100%', height: '100%' }} />
+      ) : (
+        <div
+          style={{
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#888',
+          }}
+        >
+          Waiting for avatar video… ({state})
+        </div>
+      )}
+
+      {localCameraTrack && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            right: 16,
+            width: 220,
+            height: 165,
+            border: '2px solid #5bf4de',
+            borderRadius: 8,
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+          }}
+        >
+          <ParticipantTile trackRef={localCameraTrack} style={{ width: '100%', height: '100%' }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -239,8 +244,7 @@ const InterviewPage = ({ token, avatarContext, onBack, onLogout }) => {
                 }}
             >
                 <MicGateWhileAgentSpeaks />
-                <PublishInterviewMetadata avatarContext={avatarContext} />
-                <AgentAvatarVideo />
+                <InterviewVideoLayout />
                 <RoomAudioRenderer />
                 <ControlBar controls={{ screenShare: false }} />
                 <LiveTranscription />
