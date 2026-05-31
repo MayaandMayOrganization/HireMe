@@ -18,6 +18,7 @@ function InterviewVideoLayout() {
   const { videoTrack: avatarTrack, state } = useVoiceAssistant();
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
   const localCameraTrack = cameraTracks.find((ref) => ref.participant?.isLocal);
+  const isWaiting = !avatarTrack && (state === 'connecting' || state === 'initializing');
 
   return (
     <div
@@ -36,12 +37,21 @@ function InterviewVideoLayout() {
           style={{
             height: '100%',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#888',
+            gap: '8px',
+            padding: '24px',
+            textAlign: 'center',
           }}
         >
-          Waiting for avatar video… ({state})
+          <div>{isWaiting ? 'Connecting avatar…' : 'Waiting for avatar video…'}</div>
+          <div style={{ fontSize: '13px', color: '#666' }}>
+            {isWaiting
+              ? 'First connection can take 20–40 seconds while Simli and the agent start.'
+              : `Status: ${state}`}
+          </div>
         </div>
       )}
 
@@ -113,8 +123,7 @@ function MicGateWhileAgentSpeaks() {
         p.identity.includes('avatar'))
   );
 
-  const shouldEnableMic =
-    !avatarSpeaking && state !== 'speaking' && state !== 'thinking';
+  const shouldEnableMic = !avatarSpeaking && state !== 'speaking';
 
   useEffect(() => {
     if (!localParticipant) return undefined;
