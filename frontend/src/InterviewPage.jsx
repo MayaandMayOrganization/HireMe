@@ -14,11 +14,27 @@ import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 import { LIVEKIT_URL } from './config';
 
+function isAvatarParticipant(identity) {
+  if (!identity) return false;
+  const id = identity.toLowerCase();
+  return id.includes('simli') || id.includes('avatar') || id.includes('agent');
+}
+
 function InterviewVideoLayout() {
-  const { videoTrack: avatarTrack, state } = useVoiceAssistant();
+  const { videoTrack: assistantTrack, state } = useVoiceAssistant();
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
   const localCameraTrack = cameraTracks.find((ref) => ref.participant?.isLocal);
-  const isWaiting = !avatarTrack && (state === 'connecting' || state === 'initializing');
+  const remoteAvatarTrack = cameraTracks.find(
+    (ref) => !ref.participant?.isLocal && isAvatarParticipant(ref.participant?.identity),
+  );
+
+  const lastAvatarTrackRef = useRef(null);
+  const liveAvatarTrack = assistantTrack ?? remoteAvatarTrack ?? null;
+  if (liveAvatarTrack) {
+    lastAvatarTrackRef.current = liveAvatarTrack;
+  }
+  const displayAvatarTrack = liveAvatarTrack ?? lastAvatarTrackRef.current;
+  const isWaiting = !displayAvatarTrack && (state === 'connecting' || state === 'initializing');
 
   return (
     <div
@@ -30,8 +46,26 @@ function InterviewVideoLayout() {
         backgroundColor: '#1a1a1a',
       }}
     >
-      {avatarTrack ? (
-        <ParticipantTile trackRef={avatarTrack} style={{ width: '100%', height: '100%' }} />
+      {displayAvatarTrack ? (
+        <>
+          <ParticipantTile trackRef={displayAvatarTrack} style={{ width: '100%', height: '100%' }} />
+          {(state === 'thinking' || state === 'connecting') && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                padding: '6px 12px',
+                borderRadius: 6,
+                backgroundColor: 'rgba(0,0,0,0.65)',
+                color: '#5bf4de',
+                fontSize: 13,
+              }}
+            >
+              {state === 'thinking' ? 'Thinking…' : 'Connecting…'}
+            </div>
+          )}
+        </>
       ) : (
         <div
           style={{
