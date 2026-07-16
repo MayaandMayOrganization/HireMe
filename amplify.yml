@@ -1,5 +1,3 @@
-# Build with Vite from the repo root (same as local `npm run dev`).
-# Output is written to frontend/dist because vite.config.js sets root: frontend.
 version: 1
 applications:
   - appRoot: .
@@ -21,7 +19,6 @@ applications:
         paths:
           - node_modules/**/*
       redirects:
-        # Proxy GetAvatarContext through Amplify (avoids Lambda duplicate CORS headers in browser).
         - source: '/api/avatar-context'
           target: 'https://tiqv7tglmz2hb4qmpjrimr5pge0anuak.lambda-url.us-east-1.on.aws/'
           status: '200'
@@ -34,10 +31,12 @@ applications:
         - source: '/api/livekit-token/<*>'
           target: 'https://iexzogfkyuunk7b5sunmodusay0whgku.lambda-url.us-east-1.on.aws/<*>'
           status: '200'
-        # CV Service Redirects (replace <api-gateway-id> with actual API Gateway deployment ID)
         - source: '/api/cv'
-          target: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/prod/cv'
+          target: 'https://YOUR_ACTUAL_API_GATEWAY_ID.execute-api.us-east-1.amazonaws.com/prod/cv'
           status: '200'
         - source: '/api/cv/<*>'
-          target: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/prod/cv/<*>'
+          target: 'https://YOUR_ACTUAL_API_GATEWAY_ID.execute-api.us-east-1.amazonaws.com/prod/cv/<*>'
           status: '200'
+        - source: '/<*>'
+          target: '/index.html'
+          status: '404-200'
