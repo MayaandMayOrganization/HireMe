@@ -3,6 +3,7 @@ import { Login, SignUp, getCurrentUser, logout } from './AuthComponents';
 import Dashboard from './components/Dashboard';
 import InterviewPage from './InterviewPage';
 import HRFlashcards from './components/HRFlashCards';
+import CVBuilder from './components/CVBuilder';
 import { AVATAR_CONTEXT_URL, LIVEKIT_TOKEN_URL } from './config';
 
 function App() {
@@ -169,6 +170,7 @@ function App() {
               onStartInterview={handleStartInterview}
               isStartingInterview={isStartingInterview}
               onShowHR={() => setMainView('hr_questions')} 
+              onShowCV={() => setMainView('cv_builder')}
               onLogout={handleLogout}
             />
           ) : mainView === 'hr_questions' ? (
@@ -181,6 +183,11 @@ function App() {
               </button>
               <HRFlashcards />
             </div>
+          ) : mainView === 'cv_builder' ? (
+            <CVBuilder
+              onBack={() => setMainView('dashboard')}
+              onLogout={handleLogout}
+            />
           ) : (
             <InterviewPage
               token={roomToken}

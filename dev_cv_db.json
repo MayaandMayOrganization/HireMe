@@ -1,0 +1,118 @@
+{
+  "local-user": {
+    "cv": {
+      "personalInfo": {
+        "fullName": "Maya Geva",
+        "email": "maya@example.com",
+        "phone": "050-1234567",
+        "linkedin": "linkedin.com/in/mayageva",
+        "github": "github.com/mayageva",
+        "summary": "Full stack developer student. Working with Python and C++."
+      },
+      "education": [],
+      "experience": [],
+      "skills": [
+        "Python",
+        "C++",
+        "React"
+      ],
+      "projects": []
+    },
+    "analysis": {
+      "score": 55,
+      "strengths": [
+        "Professional summary provides a concise overview of your background.",
+        "Lists relevant core technologies (including Python, C++)."
+      ],
+      "suggestions": [
+        {
+          "category": "experience",
+          "issue": "No work experience section listed.",
+          "fix": "Add any past internships, freelance work, or junior roles to demonstrate practical background."
+        },
+        {
+          "category": "projects",
+          "issue": "No project examples listed to validate your skills.",
+          "fix": "Add 1-2 major academic or personal projects. List the technologies used in each project."
+        }
+      ],
+      "analyzedAt": "2026-07-16T15:04:24.348Z",
+      "isMockFallback": true
+    }
+  },
+  "mayage2": {
+    "cv": {
+      "personalInfo": {
+        "fullName": "Maya Geva",
+        "email": "mayage2@mta.ac.il",
+        "phone": "0526415764",
+        "linkedin": "",
+        "github": "",
+        "summary": "Full stack developer student. Working with Python and C++."
+      },
+      "education": [
+        {
+          "institution": "haacademit",
+          "degree": "computer science",
+          "startYear": "",
+          "endYear": "2026",
+          "description": ""
+        }
+      ],
+      "experience": [
+        {
+          "company": "amdocs",
+          "role": "software engineer",
+          "startDate": "01/01/2020",
+          "endDate": "01/01/2021",
+          "description": "worked with a team on a product"
+        },
+        {
+          "company": "a company",
+          "role": " ROLE",
+          "startDate": "",
+          "endDate": "",
+          "description": ""
+        }
+      ],
+      "skills": [
+        "Python",
+        "Docker",
+        "React"
+      ],
+      "projects": []
+    },
+    "analysis": {
+      "score": 30,
+      "strengths": [
+        "Includes relevant technical skills such as Python, Docker, and React.",
+        "Has professional experience as a software engineer at a recognized company.",
+        "Pursuing a degree in computer science, indicating ongoing education in the field."
+      ],
+      "suggestions": [
+        {
+          "category": "personal",
+          "issue": "Summary is very brief and lacks impact.",
+          "fix": "Expand the summary to include specific achievements, technologies used, and career goals to make it more compelling."
+        },
+        {
+          "category": "education",
+          "issue": "Education section lacks start year and description.",
+          "fix": "Add the start year and include relevant coursework, projects, or academic achievements to strengthen this section."
+        },
+        {
+          "category": "experience",
+          "issue": "Experience descriptions are vague and lack quantifiable impact.",
+          "fix": "Use strong action verbs and include specific contributions, technologies used, and measurable results for each role."
+        },
+        {
+          "category": "projects",
+          "issue": "No projects listed to demonstrate skills.",
+          "fix": "Add detailed project descriptions that showcase the use of claimed skills like Python, Docker, and React with measurable outcomes."
+        }
+      ],
+      "analyzedAt": "2026-07-16T16:18:01.526Z",
+      "isMockFallback": false
+    }
+  }
+}

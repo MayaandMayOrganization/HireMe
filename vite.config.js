@@ -15,7 +15,9 @@ export default defineConfig(async ({ command }) => {
 
   if (command === 'serve') {
     const { devLivekitTokenPlugin } = await import('./vite/dev-livekit-token.js')
+    const { devCvServicePlugin } = await import('./vite/dev-cv-service.js')
     plugins.push(devLivekitTokenPlugin())
+    plugins.push(devCvServicePlugin())
   }
 
   return {
