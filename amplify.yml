@@ -34,3 +34,10 @@ applications:
         - source: '/api/livekit-token/<*>'
           target: 'https://iexzogfkyuunk7b5sunmodusay0whgku.lambda-url.us-east-1.on.aws/<*>'
           status: '200'
+        # CV Service Redirects (replace <api-gateway-id> with actual API Gateway deployment ID)
+        - source: '/api/cv'
+          target: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/prod/cv'
+          status: '200'
+        - source: '/api/cv/<*>'
+          target: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/prod/cv/<*>'
+          status: '200'
