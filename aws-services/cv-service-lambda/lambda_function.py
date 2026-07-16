@@ -15,6 +15,174 @@ CORS_HEADERS = {
 
 COGNITO_JWKS = None
 
+def analyze_cv_with_openai(cv_data: dict) -> dict:
+    """Send structured CV data to OpenAI for review using built-in urllib."""
+    import datetime
+    
+    # Dynamic fallback generator for Lambda
+    def get_mock_analysis_fallback(data: dict) -> dict:
+        skills = data.get("skills") or []
+        experience = data.get("experience") or []
+        projects = data.get("projects") or []
+        personal_info = data.get("personalInfo") or {}
+        
+        strengths = []
+        suggestions = []
+        score = 70
+        
+        if personal_info.get("summary"):
+            strengths.append("Professional summary provides a concise overview of your background.")
+        else:
+            strengths.append("Contact information is clearly structured.")
+            
+        if skills:
+            strengths.append(f"Lists relevant core technologies (including {', '.join(skills[:2])}).")
+            
+        if projects:
+            strengths.append("Showcases personal projects demonstrating hands-on experience.")
+            
+        if not experience:
+            score -= 10
+            suggestions.append({
+                "category": "experience",
+                "issue": "No work experience section listed.",
+                "fix": "Add any past internships, freelance work, or junior roles to demonstrate practical background."
+            })
+        else:
+            score += 5
+            suggestions.append({
+                "category": "experience",
+                "issue": "Experience descriptions could be more impact-oriented.",
+                "fix": "Quantify your achievements with action verbs (e.g. 'Reduced loading time by 20%' or 'Managed 3 client releases')."
+            })
+            
+        if len(skills) < 3:
+            score -= 5
+            suggestions.append({
+                "category": "skills",
+                "issue": "Skills list is quite sparse.",
+                "fix": "Expand your skills list to cover full-stack libraries, cloud platforms, and developer tools you have used."
+            })
+        else:
+            score += 5
+            
+        if not projects:
+            score -= 10
+            suggestions.append({
+                "category": "projects",
+                "issue": "No project examples listed to validate your skills.",
+                "fix": "Add 1-2 major academic or personal projects. List the technologies used in each project."
+            })
+        else:
+            score += 5
+            suggestions.append({
+                "category": "projects",
+                "issue": "Technologies are not specified per project.",
+                "fix": "Ensure you clearly tag or describe the technologies (e.g. React, Node.js) used in each project description."
+            })
+            
+        if not personal_info.get("linkedin") and not personal_info.get("github"):
+            score -= 5
+            suggestions.append({
+                "category": "personal",
+                "issue": "Missing professional links (LinkedIn or GitHub).",
+                "fix": "Add your LinkedIn URL and GitHub profile to make it easier for recruiters to review your work."
+            })
+            
+        score = max(50, min(95, score))
+        
+        return {
+            "score": score,
+            "strengths": strengths,
+            "suggestions": suggestions,
+            "analyzedAt": datetime.datetime.utcnow().isoformat() + "Z",
+            "isMockFallback": True
+        }
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("[cv-service-lambda] Warning: OPENAI_API_KEY is not set. Using local mock analysis fallback.")
+        return get_mock_analysis_fallback(cv_data)
+
+    model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+    print(f"[cv-service-lambda] Sending CV to OpenAI. Model: {model}")
+
+    system_prompt = """You are an expert technical recruiter and CV reviewer. Your job is to analyze the candidate's structured CV JSON and provide constructive feedback in a strict JSON format.
+
+Evaluate the CV on the following criteria:
+1. Impact-oriented wording: Use of strong action verbs and quantifiable metrics/results.
+2. Formatting & structural gaps: Missing fields, vague descriptions, poor organization.
+3. Strength of skills vs. projects: Are their projects demonstrating the skills they claimed to have?
+
+You must output a JSON object with exactly the following keys:
+1. "score": An integer between 0 and 100 representing the overall strength of the CV.
+2. "strengths": A list of strings (maximum 4) detailing what the candidate did well.
+3. "suggestions": A list of objects. Each object must represent an actionable improvement suggestion and contain:
+   - "category": Must be exactly one of: "personal", "education", "experience", "skills", "projects".
+   - "issue": A concise description of the problem in that section.
+   - "fix": A specific, actionable recommendation to fix the issue.
+
+Do not output any markdown formatting, backticks, prefix, or suffix. Output only the raw JSON."""
+
+    user_prompt = f"Here is the structured CV JSON to analyze:\n{json.dumps(cv_data, indent=2)}"
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2
+    }
+
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            res_body = response.read().decode("utf-8")
+            data = json.loads(res_body)
+
+        content = data.get("choices", [{}])[0].get("message", {}).get("content")
+        if not content:
+            raise ValueError("OpenAI returned an empty response")
+
+        parsed = json.loads(content)
+        
+        # Normalize categories
+        valid_categories = ["personal", "education", "experience", "skills", "projects"]
+        raw_suggestions = parsed.get("suggestions") or []
+        suggestions = []
+        
+        for s in raw_suggestions:
+            category = str(s.get("category") or "").lower().strip()
+            if category not in valid_categories:
+                category = "experience"
+            suggestions.append({
+                "category": category,
+                "issue": s.get("issue") or "Improvement needed",
+                "fix": s.get("fix") or "Update details"
+            })
+            
+        return {
+            "score": int(parsed.get("score") or 70),
+            "strengths": parsed.get("strengths") or [],
+            "suggestions": suggestions,
+            "analyzedAt": datetime.datetime.utcnow().isoformat() + "Z",
+            "isMockFallback": False
+        }
+    except Exception as e:
+        print(f"[cv-service-lambda] Warning: OpenAI API request failed: {e}. Falling back to local mock analysis.")
+        return get_mock_analysis_fallback(cv_data)
+
 def get_cognito_jwks(region, user_pool_id):
     """Fetch and cache Cognito JWKS keys."""
     global COGNITO_JWKS
@@ -186,23 +354,7 @@ def lambda_handler(event, context):
             }
 
             if is_analyze_path:
-                # Stubbed AI analysis logic for Step 1
-                # This will be integrated with real OpenAI completion calls in Step 2
-                analysis_feedback = {
-                    "score": 78,
-                    "strengths": [
-                        "Nicely structured sections",
-                        "Relevant modern technology selections"
-                    ],
-                    "suggestions": [
-                        {
-                            "category": "experience",
-                            "issue": "Include action verbs and metrics in experience listings.",
-                            "fix": "Rewrite details focusing on quantifiable outcomes."
-                        }
-                    ]
-                }
-                db_item["analysis"] = analysis_feedback
+                db_item["analysis"] = analyze_cv_with_openai(cv_data)
 
             # Put item in DynamoDB
             table.put_item(Item=db_item)
