@@ -183,6 +183,65 @@ Do not output any markdown formatting, backticks, prefix, or suffix. Output only
         print(f"[cv-service-lambda] Warning: OpenAI API request failed: {e}. Falling back to local mock analysis.")
         return get_mock_analysis_fallback(cv_data)
 
+def polish_text_with_openai(text: str) -> str:
+    """Rewrite text using OpenAI to be more professional."""
+    def get_mock_polished_fallback(t: str) -> str:
+        if not t or not t.strip():
+            return "Developed and optimized scalable web applications."
+        trimmed = t.strip()
+        mock = trimmed[0].upper() + trimmed[1:]
+        if not mock.endswith('.'):
+            mock += '.'
+        lower_mock = mock.lower()
+        if not any(k in lower_mock for k in ["led", "engineered", "implemented", "optimized"]):
+            mock = "Engineered and optimized: " + mock
+        return mock + " (AI Polish Fallback)"
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("[cv-service-lambda] Warning: OPENAI_API_KEY is not set for polishing. Using local mock fallback.")
+        return get_mock_polished_fallback(text)
+
+    model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+    print(f"[cv-service-lambda] Polishing text with OpenAI. Model: {model}")
+
+    try:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert resume writer. Rewrite the following bullet point or description to be highly professional, impactful, action-oriented, and tailored for a modern tech resume. Keep it concise, similar in length, and preserve the original meaning. Return ONLY the polished text with no extra conversational commentary."
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+            "temperature": 0.3
+        }
+
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            res_body = json.loads(response.read().decode("utf-8"))
+            content = res_body["choices"][0]["message"]["content"].strip()
+            return content
+
+    except Exception as exc:
+        print(f"[cv-service-lambda] OpenAI Polish Fallback Triggered. Original Error: {exc}")
+        return get_mock_polished_fallback(text)
+
 def get_cognito_jwks(region, user_pool_id):
     """Fetch and cache Cognito JWKS keys."""
     global COGNITO_JWKS
@@ -294,7 +353,8 @@ def lambda_handler(event, context):
 
         path = event.get("rawPath") or event.get("path") or ""
         is_analyze_path = path.endswith("/analyze")
-
+        is_polish_path = path.endswith("/polish")
+ 
         # --- GET: Fetch saved CV and Analysis ---
         if method == "GET":
             response = table.get_item(
@@ -322,7 +382,18 @@ def lambda_handler(event, context):
             if event.get("isBase64Encoded"):
                 body_str = base64.b64decode(body_str).decode("utf-8")
             
-            cv_data = json.loads(body_str) if body_str else {}
+            body_json = json.loads(body_str) if body_str else {}
+            
+            if is_polish_path:
+                text_to_polish = body_json.get("text") or ""
+                polished_text = polish_text_with_openai(text_to_polish)
+                return {
+                    "statusCode": 200,
+                    "headers": CORS_HEADERS,
+                    "body": json.dumps({"polished": polished_text})
+                }
+                
+            cv_data = body_json
             if not cv_data:
                 return {
                     "statusCode": 400,

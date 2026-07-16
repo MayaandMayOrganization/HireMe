@@ -128,7 +128,28 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
   };
 
   return (
-    <div className="min-h-screen text-[#e0e5f9] font-inter" style={{ backgroundColor: theme.background }}>
+    <div className="min-h-screen text-[#e0e5f9] font-inter overflow-y-auto" style={{ backgroundColor: theme.background }}>
+      <style>{`
+        .custom-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: #5bf4de rgba(255, 255, 255, 0.05);
+        }
+        .custom-scroll::-webkit-scrollbar {
+          width: 6px;
+          display: block !important;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05) !important;
+          border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: #5bf4de !important;
+          border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+          background: #46eedd !important;
+        }
+      `}</style>
       
       <header className="fixed top-0 w-full z-50">
         <div className="border-b border-[#424858]/20 px-6 h-16 flex items-center justify-between" style={{ backgroundColor: theme.background }}>
@@ -372,7 +393,7 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
               <div className="space-y-6 flex-1 flex flex-col justify-between">
                 {cvAnalysis ? (
                   <div className="space-y-6 text-left">
-                    {cvAnalysis.suggestions?.length > 0 && (
+                    {cvAnalysis?.suggestions?.length > 0 && (
                       <div className="bg-black/30 border-l-2 border-[#5bf4de] p-4 rounded-r-lg">
                         <p className="text-xs italic text-[#e0e5f9] leading-relaxed">
                           "{cvAnalysis.suggestions[0].issue}"
@@ -391,8 +412,8 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
 
                     <div>
                       <h4 className="text-[10px] font-black uppercase text-[#a5abbd] mb-3 tracking-widest">Actionable Suggestions</h4>
-                      <ul className="space-y-2 max-h-36 overflow-y-auto pr-1 hide-scrollbar">
-                        {cvAnalysis.suggestions.map((s, i) => (
+                      <ul className="space-y-2 max-h-56 overflow-y-scroll pr-1 custom-scroll">
+                        {(cvAnalysis?.suggestions || []).map((s, i) => (
                           <li 
                             key={i} 
                             onClick={() => handleSuggestionClick(s.category)}
@@ -414,13 +435,17 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
 
                     <div>
                       <h4 className="text-[10px] font-black uppercase text-[#a5abbd] mb-3 tracking-widest">Key Strengths</h4>
-                      <ul className="space-y-2">
-                        {cvAnalysis.strengths.slice(0, 3).map((str, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-xs text-gray-400">
-                            <span className="material-symbols-outlined text-[#4ae183] text-sm mt-0.5">check_circle</span>
-                            <span>{str}</span>
-                          </li>
-                        ))}
+                      <ul className="space-y-2 max-h-32 overflow-y-scroll pr-1 custom-scroll">
+                        {Array.isArray(cvAnalysis?.strengths) && cvAnalysis.strengths.length > 0 ? (
+                          cvAnalysis.strengths.slice(0, 3).map((str, i) => (
+                            <li key={i} className="flex items-start gap-2.5 text-xs text-[#e0e5f9]">
+                              <span className="material-symbols-outlined text-[#4ae183] text-sm mt-0.5">check_circle</span>
+                              <span>{str}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-xs text-[#a5abbd] italic p-2 bg-black/10 rounded">No strengths records resolved.</li>
+                        )}
                       </ul>
                     </div>
                   </div>

@@ -18,6 +18,86 @@ const CVBuilder = ({ onBack, onLogout }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [skillsInput, setSkillsInput] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
+  const [errors, setErrors] = useState({ experience: [], education: [], projects: [] });
+  const [polishingItems, setPolishingItems] = useState({});
+  const [previewTheme, setPreviewTheme] = useState('classic');
+  const [selectedColor, setSelectedColor] = useState('#3b82f6');
+
+  const handlePolishDescription = async (arrayKey, index, text) => {
+    if (!text || text.trim().length === 0) {
+      alert("Please enter some description text to polish first.");
+      return;
+    }
+    const itemKey = `${arrayKey}-${index}`;
+    setPolishingItems(prev => ({ ...prev, [itemKey]: true }));
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/cv/polish', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.polished) {
+          updateArrayItem(arrayKey, index, 'description', data.polished);
+        }
+      } else {
+        throw new Error("Polish failed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("AI Polishing experienced an issue.");
+    } finally {
+      setPolishingItems(prev => ({ ...prev, [itemKey]: false }));
+    }
+  };
+
+  const validateCV = (data) => {
+    const valErrors = {
+      experience: [],
+      education: [],
+      projects: []
+    };
+    let isValid = true;
+
+    (data.experience || []).forEach((exp, idx) => {
+      const expErrors = {};
+      if (!exp.company?.trim()) {
+        expErrors.company = 'Company name is required';
+        isValid = false;
+      }
+      if (!exp.role?.trim()) {
+        expErrors.role = 'Role/Position is required';
+        isValid = false;
+      }
+      valErrors.experience[idx] = expErrors;
+    });
+
+    (data.education || []).forEach((edu, idx) => {
+      const eduErrors = {};
+      if (!edu.institution?.trim()) {
+        eduErrors.institution = 'Institution name is required';
+        isValid = false;
+      }
+      if (!edu.degree?.trim()) {
+        eduErrors.degree = 'Degree / Focus is required';
+        isValid = false;
+      }
+      valErrors.education[idx] = eduErrors;
+    });
+
+    (data.projects || []).forEach((proj, idx) => {
+      const projErrors = {};
+      if (!proj.title?.trim()) {
+        projErrors.title = 'Project title is required';
+        isValid = false;
+      }
+      valErrors.projects[idx] = projErrors;
+    });
+
+    return { isValid, errors: valErrors };
+  };
 
   // 1. Fetch saved CV on mount
   useEffect(() => {
@@ -98,6 +178,22 @@ const CVBuilder = ({ onBack, onLogout }) => {
   // 4. Save Draft Request
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    const { isValid, errors: valErrors } = validateCV(cvData);
+    setErrors(valErrors);
+
+    if (!isValid) {
+      if (valErrors.experience.some(x => Object.keys(x).length > 0)) {
+        setActiveTab('experience');
+      } else if (valErrors.education.some(x => Object.keys(x).length > 0)) {
+        setActiveTab('education');
+      } else if (valErrors.projects.some(x => Object.keys(x).length > 0)) {
+        setActiveTab('projects');
+      }
+      setStatusMessage('Please fix form validation errors.');
+      setTimeout(() => setStatusMessage(''), 4000);
+      return;
+    }
+
     setIsSaving(true);
     setStatusMessage('');
     try {
@@ -123,6 +219,22 @@ const CVBuilder = ({ onBack, onLogout }) => {
 
   // 5. Trigger AI Analysis
   const handleAnalyze = async () => {
+    const { isValid, errors: valErrors } = validateCV(cvData);
+    setErrors(valErrors);
+
+    if (!isValid) {
+      if (valErrors.experience.some(x => Object.keys(x).length > 0)) {
+        setActiveTab('experience');
+      } else if (valErrors.education.some(x => Object.keys(x).length > 0)) {
+        setActiveTab('education');
+      } else if (valErrors.projects.some(x => Object.keys(x).length > 0)) {
+        setActiveTab('projects');
+      }
+      setStatusMessage('Please fix form validation errors.');
+      setTimeout(() => setStatusMessage(''), 4000);
+      return;
+    }
+
     setIsAnalyzing(true);
     setStatusMessage('');
     try {
@@ -361,68 +473,91 @@ const CVBuilder = ({ onBack, onLogout }) => {
             {activeTab === 'experience' && (
               <fieldset id="experience" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Work Experience</legend>
-                {cvData.experience.map((exp, index) => (
-                  <div key={index} className="p-4 bg-[#080e1c] border border-[#3b4a47]/30 rounded-lg relative space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('experience', index)}
-                      className="absolute top-2 right-2 text-red-400 hover:text-red-500 text-xs font-bold flex items-center"
-                    >
-                      <span className="material-symbols-outlined text-sm">delete</span>
-                    </button>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Company</label>
-                        <input
-                          type="text"
-                          value={exp.company || ''}
-                          onChange={e => updateArrayItem('experience', index, 'company', e.target.value)}
-                          className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
-                        />
+                {cvData.experience.map((exp, index) => {
+                  const expErrors = errors.experience[index] || {};
+                  return (
+                    <div key={index} className="p-4 bg-[#080e1c] border border-[#3b4a47]/30 rounded-lg relative space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('experience', index)}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-500 text-xs font-bold flex items-center"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Company *</label>
+                          <input
+                            type="text"
+                            value={exp.company || ''}
+                            onChange={e => updateArrayItem('experience', index, 'company', e.target.value)}
+                            className={`w-full bg-[#0d1c32] border rounded p-2 text-xs text-white outline-none ${
+                              expErrors.company ? 'border-red-500 focus:border-red-500' : 'border-[#3b4a47]/40 focus:border-[#46eedd]'
+                            }`}
+                          />
+                          {expErrors.company && <p className="text-[9px] text-red-500 mt-1">{expErrors.company}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Role *</label>
+                          <input
+                            type="text"
+                            value={exp.role || ''}
+                            onChange={e => updateArrayItem('experience', index, 'role', e.target.value)}
+                            className={`w-full bg-[#0d1c32] border rounded p-2 text-xs text-white outline-none ${
+                              expErrors.role ? 'border-red-500 focus:border-red-500' : 'border-[#3b4a47]/40 focus:border-[#46eedd]'
+                            }`}
+                          />
+                          {expErrors.role && <p className="text-[9px] text-red-500 mt-1">{expErrors.role}</p>}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Start Date</label>
+                          <input
+                            type="text"
+                            placeholder="MM/YYYY"
+                            value={exp.startDate || ''}
+                            onChange={e => updateArrayItem('experience', index, 'startDate', e.target.value)}
+                            className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white outline-none focus:border-[#46eedd]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">End Date</label>
+                          <input
+                            type="text"
+                            placeholder="MM/YYYY or Present"
+                            value={exp.endDate || ''}
+                            onChange={e => updateArrayItem('experience', index, 'endDate', e.target.value)}
+                            className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white outline-none focus:border-[#46eedd]"
+                          />
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Role</label>
-                        <input
-                          type="text"
-                          value={exp.role || ''}
-                          onChange={e => updateArrayItem('experience', index, 'role', e.target.value)}
-                          className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-[9px] font-black uppercase text-[#bacac6]">Description / Achievements</label>
+                          <button
+                            type="button"
+                            disabled={polishingItems[`experience-${index}`]}
+                            onClick={() => handlePolishDescription('experience', index, exp.description)}
+                            className="flex items-center gap-1 text-[8px] font-black uppercase bg-[#46eedd]/15 hover:bg-[#46eedd]/25 text-[#46eedd] px-2 py-0.5 rounded border border-[#46eedd]/20 transition-all disabled:opacity-50"
+                          >
+                            <span className="material-symbols-outlined text-[10px]">{polishingItems[`experience-${index}`] ? 'sync' : 'auto_awesome'}</span>
+                            {polishingItems[`experience-${index}`] ? 'Polishing...' : '✨ AI Polish'}
+                          </button>
+                        </div>
+                        <textarea
+                          rows={3}
+                          disabled={polishingItems[`experience-${index}`]}
+                          value={exp.description || ''}
+                          onChange={e => updateArrayItem('experience', index, 'description', e.target.value)}
+                          className={`w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white resize-none outline-none focus:border-[#46eedd] ${
+                            polishingItems[`experience-${index}`] ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Start Date</label>
-                        <input
-                          type="text"
-                          placeholder="MM/YYYY"
-                          value={exp.startDate || ''}
-                          onChange={e => updateArrayItem('experience', index, 'startDate', e.target.value)}
-                          className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">End Date</label>
-                        <input
-                          type="text"
-                          placeholder="MM/YYYY or Present"
-                          value={exp.endDate || ''}
-                          onChange={e => updateArrayItem('experience', index, 'endDate', e.target.value)}
-                          className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Description / Achievements</label>
-                      <textarea
-                        rows={3}
-                        value={exp.description || ''}
-                        onChange={e => updateArrayItem('experience', index, 'description', e.target.value)}
-                        className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white resize-none"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <button
                   type="button"
                   onClick={() => addArrayItem('experience', { company: '', role: '', startDate: '', endDate: '', description: '' })}
@@ -437,34 +572,42 @@ const CVBuilder = ({ onBack, onLogout }) => {
             {activeTab === 'education' && (
               <fieldset id="education" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Education History</legend>
-                {cvData.education.map((edu, index) => (
-                  <div key={index} className="p-4 bg-[#080e1c] border border-[#3b4a47]/30 rounded-lg relative space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('education', index)}
-                      className="absolute top-2 right-2 text-red-400 hover:text-red-500 text-xs font-bold flex items-center"
-                    >
-                      <span className="material-symbols-outlined text-sm">delete</span>
-                    </button>
-                    <div>
-                      <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Institution</label>
-                      <input
-                        type="text"
-                        value={edu.institution || ''}
-                        onChange={e => updateArrayItem('education', index, 'institution', e.target.value)}
-                        className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="col-span-2">
-                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Degree / Focus</label>
+                {cvData.education.map((edu, index) => {
+                  const eduErrors = errors.education[index] || {};
+                  return (
+                    <div key={index} className="p-4 bg-[#080e1c] border border-[#3b4a47]/30 rounded-lg relative space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('education', index)}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-500 text-xs font-bold flex items-center"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                      <div>
+                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Institution *</label>
                         <input
                           type="text"
-                          value={edu.degree || ''}
-                          onChange={e => updateArrayItem('education', index, 'degree', e.target.value)}
-                          className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
+                          value={edu.institution || ''}
+                          onChange={e => updateArrayItem('education', index, 'institution', e.target.value)}
+                          className={`w-full bg-[#0d1c32] border rounded p-2 text-xs text-white outline-none ${
+                            eduErrors.institution ? 'border-red-500 focus:border-red-500' : 'border-[#3b4a47]/40 focus:border-[#46eedd]'
+                          }`}
                         />
+                          {eduErrors.institution && <p className="text-[9px] text-red-500 mt-1">{eduErrors.institution}</p>}
                       </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Degree / Focus *</label>
+                          <input
+                            type="text"
+                            value={edu.degree || ''}
+                            onChange={e => updateArrayItem('education', index, 'degree', e.target.value)}
+                            className={`w-full bg-[#0d1c32] border rounded p-2 text-xs text-white outline-none ${
+                              eduErrors.degree ? 'border-red-500 focus:border-red-500' : 'border-[#3b4a47]/40 focus:border-[#46eedd]'
+                            }`}
+                          />
+                          {eduErrors.degree && <p className="text-[9px] text-red-500 mt-1">{eduErrors.degree}</p>}
+                        </div>
                       <div>
                         <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">End Year</label>
                         <input
@@ -477,7 +620,8 @@ const CVBuilder = ({ onBack, onLogout }) => {
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
                 <button
                   type="button"
                   onClick={() => addArrayItem('education', { institution: '', degree: '', startYear: '', endYear: '', description: '' })}
@@ -492,24 +636,29 @@ const CVBuilder = ({ onBack, onLogout }) => {
             {activeTab === 'projects' && (
               <fieldset id="projects" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Technical Projects</legend>
-                {cvData.projects.map((proj, index) => (
-                  <div key={index} className="p-4 bg-[#080e1c] border border-[#3b4a47]/30 rounded-lg relative space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('projects', index)}
-                      className="absolute top-2 right-2 text-red-400 hover:text-red-500 text-xs font-bold flex items-center"
-                    >
-                      <span className="material-symbols-outlined text-sm">delete</span>
-                    </button>
-                    <div>
-                      <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Project Title</label>
-                      <input
-                        type="text"
-                        value={proj.title || ''}
-                        onChange={e => updateArrayItem('projects', index, 'title', e.target.value)}
-                        className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
-                      />
-                    </div>
+                {cvData.projects.map((proj, index) => {
+                  const projErrors = errors.projects[index] || {};
+                  return (
+                    <div key={index} className="p-4 bg-[#080e1c] border border-[#3b4a47]/30 rounded-lg relative space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('projects', index)}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-500 text-xs font-bold flex items-center"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                      <div>
+                        <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Project Title *</label>
+                        <input
+                          type="text"
+                          value={proj.title || ''}
+                          onChange={e => updateArrayItem('projects', index, 'title', e.target.value)}
+                          className={`w-full bg-[#0d1c32] border rounded p-2 text-xs text-white outline-none ${
+                            projErrors.title ? 'border-red-500 focus:border-red-500' : 'border-[#3b4a47]/40 focus:border-[#46eedd]'
+                          }`}
+                        />
+                        {projErrors.title && <p className="text-[9px] text-red-500 mt-1">{projErrors.title}</p>}
+                      </div>
                     <div>
                       <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Technologies Used (comma separated)</label>
                       <input
@@ -523,17 +672,32 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[9px] font-black uppercase text-[#bacac6] mb-1">Description</label>
-                      <textarea
-                        rows={3}
-                        value={proj.description || ''}
-                        onChange={e => updateArrayItem('projects', index, 'description', e.target.value)}
-                        className="w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white resize-none"
-                      />
-                    </div>
+                     <div>
+                       <div className="flex justify-between items-center mb-1.5">
+                         <label className="block text-[9px] font-black uppercase text-[#bacac6]">Description</label>
+                         <button
+                           type="button"
+                           disabled={polishingItems[`projects-${index}`]}
+                           onClick={() => handlePolishDescription('projects', index, proj.description)}
+                           className="flex items-center gap-1 text-[8px] font-black uppercase bg-[#46eedd]/15 hover:bg-[#46eedd]/25 text-[#46eedd] px-2 py-0.5 rounded border border-[#46eedd]/20 transition-all disabled:opacity-50"
+                         >
+                           <span className="material-symbols-outlined text-[10px]">{polishingItems[`projects-${index}`] ? 'sync' : 'auto_awesome'}</span>
+                           {polishingItems[`projects-${index}`] ? 'Polishing...' : '✨ AI Polish'}
+                         </button>
+                       </div>
+                       <textarea
+                         rows={3}
+                         disabled={polishingItems[`projects-${index}`]}
+                         value={proj.description || ''}
+                         onChange={e => updateArrayItem('projects', index, 'description', e.target.value)}
+                         className={`w-full bg-[#0d1c32] border border-[#3b4a47]/40 rounded p-2 text-xs text-white resize-none outline-none focus:border-[#46eedd] ${
+                           polishingItems[`projects-${index}`] ? 'opacity-50 cursor-not-allowed' : ''
+                         }`}
+                       />
+                     </div>
                   </div>
-                ))}
+                );
+              })}
                 <button
                   type="button"
                   onClick={() => addArrayItem('projects', { title: '', technologies: [], description: '' })}
@@ -576,8 +740,50 @@ const CVBuilder = ({ onBack, onLogout }) => {
         {/* Right Column: Live Preview & AI Feedback Panel */}
         <div className="w-1/2 flex flex-col bg-[#080e1c]">
           {/* Section Divider or Selector */}
-          <div className="flex border-b border-[#424858]/20 bg-[#080e1c] px-6 h-12 items-center justify-between shrink-0">
-            <span className="text-xs font-black uppercase tracking-wider text-[#a5abbd]">Live CV Preview</span>
+          <div className="flex border-b border-[#424858]/20 bg-[#080e1c] px-6 h-12 items-center justify-between shrink-0 animate-fade-in">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-[#a5abbd]">Theme</span>
+                <div className="flex bg-[#041329] p-0.5 rounded-lg border border-[#424858]/35">
+                  {['classic', 'modern', 'creative'].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setPreviewTheme(t)}
+                      className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${
+                        previewTheme === t 
+                          ? 'bg-[#1c2a41] text-[#46eedd]' 
+                          : 'text-[#bacac6] hover:text-white bg-transparent'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 border-l border-[#424858]/20 pl-4">
+                <span className="text-xs font-black uppercase tracking-wider text-[#a5abbd]">Accent</span>
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { hex: '#3b82f6', label: 'Blue' },
+                    { hex: '#10b981', label: 'Green' },
+                    { hex: '#8b5cf6', label: 'Violet' },
+                    { hex: '#ef4444', label: 'Crimson' },
+                    { hex: '#4b5563', label: 'Slate' }
+                  ].map(color => (
+                    <button
+                      key={color.hex}
+                      onClick={() => setSelectedColor(color.hex)}
+                      title={color.label}
+                      style={{ backgroundColor: color.hex }}
+                      className={`w-3.5 h-3.5 rounded-full border transition-all active:scale-90 ${
+                        selectedColor === color.hex ? 'border-white scale-110 ring-1 ring-[#46eedd]' : 'border-transparent hover:scale-105'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
             {analysis && (
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black text-[#a5abbd] uppercase">AI Review Score:</span>
@@ -618,7 +824,7 @@ const CVBuilder = ({ onBack, onLogout }) => {
 
             {/* Document Render */}
             <div className="p-1.5 bg-[#12192a] border border-[#424858]/30 rounded-xl max-w-[800px] mx-auto w-full">
-              <CVPreviewer template="Classic" data={cvData} />
+              <CVPreviewer theme={previewTheme} accentColor={selectedColor} data={cvData} />
             </div>
           </div>
         </div>

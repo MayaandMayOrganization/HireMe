@@ -102,6 +102,17 @@ async function analyzeCvWithOpenAI(cvData) {
     };
   };
 
+  const getMockPolishedText = (text) => {
+    if (!text || text.trim().length === 0) return "Developed and optimized scalable web applications.";
+    const trimmed = text.trim();
+    let mock = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    if (!mock.endsWith('.')) mock += '.';
+    if (!mock.toLowerCase().includes('led') && !mock.toLowerCase().includes('engineered') && !mock.toLowerCase().includes('implemented') && !mock.toLowerCase().includes('optimized')) {
+      mock = "Engineered and optimized: " + mock;
+    }
+    return mock + " (AI Polish Fallback)";
+  };
+
   if (!apiKey) {
     console.warn('[dev-cv-service] OPENAI_API_KEY is not set. Using local mock analysis fallback.');
     return getMockAnalysisFallback(cvData);
@@ -265,7 +276,8 @@ export function devCvServicePlugin() {
 
         const username = extractUsername(req)
         const isAnalyze = req.url.startsWith('/api/cv/analyze')
-
+        const isPolish = req.url.startsWith('/api/cv/polish')
+ 
         try {
           if (req.method === 'GET') {
             const db = loadDatabase()
@@ -275,6 +287,69 @@ export function devCvServicePlugin() {
             return
           }
 
+          if (req.method === 'POST' && isPolish) {
+            const body = await readJsonBody(req)
+            const textToPolish = body.text || ''
+            
+            const apiKey = process.env.OPENAI_API_KEY
+            const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
+            
+            console.log(`[dev-cv-service] Polishing text. Model: ${model}`);
+            
+            let polishedText = '';
+            
+            if (!apiKey) {
+              console.warn('[dev-cv-service] OPENAI_API_KEY is not set for polishing. Using local mock fallback.');
+              polishedText = getMockPolishedText(textToPolish);
+            } else {
+              try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                  },
+                  body: JSON.stringify({
+                    model,
+                    messages: [
+                      {
+                        role: 'system',
+                        content: 'You are an expert resume writer. Rewrite the following bullet point or description to be highly professional, impactful, action-oriented, and tailored for a modern tech resume. Keep it concise, similar in length, and preserve the original meaning. Return ONLY the polished text with no extra conversational commentary.'
+                      },
+                      {
+                        role: 'user',
+                        content: textToPolish
+                      }
+                    ],
+                    temperature: 0.3
+                  })
+                });
+
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  console.error("OpenAI Polish Fallback Triggered. Original Error Status:", response.status, "Body:", errorText);
+                  console.warn(`[dev-cv-service] OpenAI returned error ${response.status}: ${errorText}. Falling back to mock polish.`);
+                  polishedText = getMockPolishedText(textToPolish);
+                } else {
+                  const data = await response.json();
+                  const content = data.choices?.[0]?.message?.content?.trim();
+                  if (!content) {
+                    throw new Error('OpenAI returned an empty response');
+                  }
+                  polishedText = content;
+                }
+              } catch (err) {
+                console.error("OpenAI Polish Fallback Triggered. Original Error:", err);
+                console.warn(`[dev-cv-service] Exception during OpenAI polish: ${err.message}. Falling back to mock polish.`);
+                polishedText = getMockPolishedText(textToPolish);
+              }
+            }
+            
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ polished: polishedText }));
+            return;
+          }
+ 
           if (req.method === 'POST') {
             const body = await readJsonBody(req)
             const db = loadDatabase()

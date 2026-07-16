@@ -68,8 +68,8 @@
           "description": "worked with a team on a product"
         },
         {
-          "company": "",
-          "role": "",
+          "company": "a company",
+          "role": " ROLE",
           "startDate": "",
           "endDate": "",
           "description": ""
@@ -83,35 +83,35 @@
       "projects": []
     },
     "analysis": {
-      "score": 35,
+      "score": 30,
       "strengths": [
-        "Candidate lists relevant programming skills including Python, Docker, and React.",
-        "Has professional experience as a software engineer at a known company (Amdocs).",
-        "Currently pursuing a degree in computer science, indicating ongoing education in the field."
+        "Includes relevant technical skills such as Python, Docker, and React.",
+        "Has professional experience as a software engineer at a recognized company.",
+        "Pursuing a degree in computer science, indicating ongoing education in the field."
       ],
       "suggestions": [
         {
           "category": "personal",
-          "issue": "Summary is very brief and lacks impact-oriented wording.",
-          "fix": "Expand the summary to highlight key strengths, technologies used, and any measurable achievements or goals."
+          "issue": "Summary is very brief and lacks impact.",
+          "fix": "Expand the summary to include specific achievements, technologies used, and career goals to make it more compelling."
         },
         {
           "category": "education",
-          "issue": "Education section lacks start year and descriptive details.",
+          "issue": "Education section lacks start year and description.",
           "fix": "Add the start year and include relevant coursework, projects, or academic achievements to strengthen this section."
         },
         {
           "category": "experience",
-          "issue": "Experience descriptions are vague and lack quantifiable impact or specific responsibilities.",
-          "fix": "Enhance experience entries with strong action verbs, specific technologies used, and measurable outcomes or contributions."
+          "issue": "Experience descriptions are vague and lack quantifiable impact.",
+          "fix": "Use strong action verbs and include specific contributions, technologies used, and measurable results for each role."
         },
         {
           "category": "projects",
-          "issue": "No projects listed to demonstrate applied skills.",
-          "fix": "Add detailed project descriptions that showcase the use of listed skills, including technologies, challenges solved, and results."
+          "issue": "No projects listed to demonstrate skills.",
+          "fix": "Add detailed project descriptions that showcase the use of claimed skills like Python, Docker, and React with measurable outcomes."
         }
       ],
-      "analyzedAt": "2026-07-16T15:14:43.638Z",
+      "analyzedAt": "2026-07-16T16:18:01.526Z",
       "isMockFallback": false
     }
   }
