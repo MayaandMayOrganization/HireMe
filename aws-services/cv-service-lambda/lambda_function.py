@@ -4,6 +4,7 @@ import os
 import urllib.request
 import boto3
 import jwt
+from decimal import Decimal
 
 # CORS headers required for API Gateway / Lambda Function URL response
 CORS_HEADERS = {
@@ -12,6 +13,14 @@ CORS_HEADERS = {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type,Authorization",
 }
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            if o % 1 == 0:
+                return int(o)
+            return float(o)
+        return super(DecimalEncoder, self).default(o)
 
 COGNITO_JWKS = None
 
@@ -359,8 +368,8 @@ def lambda_handler(event, context):
         if method == "GET":
             response = table.get_item(
                 Key={
-                    "userId": username,
-                    "sortKey": "cv"
+                    "User id": username,
+                    "Sort Key": "cv"
                 }
             )
             item = response.get("Item") or {}
@@ -372,7 +381,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({
                     "cv": item.get("cv"),
                     "analysis": item.get("analysis")
-                })
+                }, cls=DecimalEncoder)
             }
 
         # --- POST: Save and optionally Analyze CV ---
@@ -390,7 +399,7 @@ def lambda_handler(event, context):
                 return {
                     "statusCode": 200,
                     "headers": CORS_HEADERS,
-                    "body": json.dumps({"polished": polished_text})
+                    "body": json.dumps({"polished": polished_text}, cls=DecimalEncoder)
                 }
                 
             cv_data = body_json
@@ -398,7 +407,7 @@ def lambda_handler(event, context):
                 return {
                     "statusCode": 400,
                     "headers": CORS_HEADERS,
-                    "body": json.dumps({"error": "Empty or invalid CV body data"})
+                    "body": json.dumps({"error": "Empty or invalid CV body data"}, cls=DecimalEncoder)
                 }
 
             # Fetch existing analysis if not doing a new analysis, so we preserve it
@@ -407,8 +416,8 @@ def lambda_handler(event, context):
                 try:
                     existing_response = table.get_item(
                         Key={
-                            "userId": username,
-                            "sortKey": "cv"
+                            "User id": username,
+                            "Sort Key": "cv"
                         }
                     )
                     existing_item = existing_response.get("Item") or {}
@@ -418,8 +427,8 @@ def lambda_handler(event, context):
 
             # Setup basic structure to save
             db_item = {
-                "userId": username,
-                "sortKey": "cv",
+                "User id": username,
+                "Sort Key": "cv",
                 "cv": cv_data,
                 "analysis": existing_analysis
             }
@@ -437,14 +446,14 @@ def lambda_handler(event, context):
                     "success": True,
                     "cv": db_item["cv"],
                     "analysis": db_item["analysis"]
-                })
+                }, cls=DecimalEncoder)
             }
 
         else:
             return {
                 "statusCode": 405,
                 "headers": CORS_HEADERS,
-                "body": json.dumps({"error": "Method Not Allowed"})
+                "body": json.dumps({"error": "Method Not Allowed"}, cls=DecimalEncoder)
             }
 
     except ValueError as val_err:
@@ -452,12 +461,12 @@ def lambda_handler(event, context):
         return {
             "statusCode": 401,
             "headers": CORS_HEADERS,
-            "body": json.dumps({"error": str(val_err)})
+            "body": json.dumps({"error": str(val_err)}, cls=DecimalEncoder)
         }
     except Exception as exc:
         print(f"Server error: {exc}")
         return {
             "statusCode": 500,
             "headers": CORS_HEADERS,
-            "body": json.dumps({"error": f"Internal Server Error: {str(exc)}"})
+            "body": json.dumps({"error": f"Internal Server Error: {str(exc)}"}, cls=DecimalEncoder)
         }
