@@ -1,6 +1,5 @@
 import React from 'react';
 
-// 0. Inline Editable Text Wrapper helper
 const EditableText = ({ value, path, onChange, className, style, placeholder = "[Click to edit]" }) => {
   const handleBlur = (e) => {
     const text = e.currentTarget.innerText.trim();
@@ -26,7 +25,6 @@ const EditableText = ({ value, path, onChange, className, style, placeholder = "
   );
 };
 
-// Custom fields renderer helper
 const CustomFieldsView = ({ fields, pathPrefix, onChange }) => {
   if (!fields || fields.length === 0) return null;
   return (
@@ -41,13 +39,11 @@ const CustomFieldsView = ({ fields, pathPrefix, onChange }) => {
   );
 };
 
-// 1. Classic Resume Template
 const ClassicTemplate = ({ data, accentColor, onChange }) => {
   const { personalInfo, education = [], experience = [], skills = [], projects = [], languages = [], customSections = [] } = data || {};
 
   return (
-    <div className="bg-white text-[#1e293b] p-8 min-h-[842px] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto border border-gray-200">
-      {/* Header */}
+    <div className="bg-white text-[#1e293b] p-8 h-[297mm] min-h-[297mm] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto border border-gray-200 overflow-hidden">
       <div className="pb-4 mb-6 border-b-2" style={{ borderColor: accentColor }}>
         <h1 className="text-2xl font-bold tracking-tight text-[#041329] uppercase mb-1">
           <EditableText value={personalInfo?.fullName} path={['personalInfo', 'fullName']} onChange={onChange} placeholder="Full Name" />
@@ -80,7 +76,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         <CustomFieldsView fields={personalInfo?.customFields} pathPrefix={['personalInfo', 'customFields']} onChange={onChange} />
       </div>
 
-      {/* Summary */}
       {personalInfo?.summary && (
         <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
@@ -92,7 +87,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         </div>
       )}
 
-      {/* Experience */}
       {experience && experience.length > 0 && (
         <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
@@ -124,7 +118,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         </div>
       )}
 
-      {/* Projects */}
       {projects && projects.length > 0 && (
         <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
@@ -155,7 +148,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         </div>
       )}
 
-      {/* Education */}
       {education && education.length > 0 && (
         <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
@@ -188,7 +180,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         </div>
       )}
 
-      {/* Skills */}
       {skills && skills.length > 0 && (
         <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-1">
@@ -207,7 +198,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         </div>
       )}
 
-      {/* Languages */}
       {languages && languages.length > 0 && (
         <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
@@ -226,7 +216,6 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
         </div>
       )}
 
-      {/* Custom Sections */}
       {customSections && customSections.map((sec, secIdx) => (
         <div key={sec.id || secIdx} className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
@@ -241,13 +230,11 @@ const ClassicTemplate = ({ data, accentColor, onChange }) => {
   );
 };
 
-// 2. Modern Resume Template (Sidebar Column Layout)
 const ModernTemplate = ({ data, accentColor, onChange }) => {
   const { personalInfo, education = [], experience = [], skills = [], projects = [], languages = [], customSections = [] } = data || {};
 
   return (
-    <div className="bg-white text-[#334155] min-h-[842px] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto border border-gray-200 grid grid-cols-12">
-      {/* Left Sidebar */}
+    <div className="bg-white text-[#334155] h-[297mm] min-h-[297mm] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto border border-gray-200 grid grid-cols-12 overflow-hidden">
       <div className="col-span-4 bg-[#0f172a] text-[#f1f5f9] p-6 flex flex-col gap-6">
         <div className="flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black mb-3 text-white" style={{ backgroundColor: accentColor }}>
@@ -259,7 +246,6 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
           <span className="text-[9px] font-bold uppercase tracking-widest mt-1" style={{ color: accentColor }}>Candidate</span>
         </div>
 
-        {/* Contact info details */}
         <div>
           <h3 className="text-[10px] font-black uppercase tracking-widest border-b pb-1.5 mb-2.5" style={{ color: accentColor, borderColor: `${accentColor}33` }}>Contact</h3>
           <ul className="space-y-2 text-[9px] font-mono text-slate-300">
@@ -271,7 +257,6 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
           <CustomFieldsView fields={personalInfo?.customFields} pathPrefix={['personalInfo', 'customFields']} onChange={onChange} />
         </div>
 
-        {/* Skills pill items */}
         {skills && skills.length > 0 && (
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-widest border-b pb-1.5 mb-2.5" style={{ color: accentColor, borderColor: `${accentColor}33` }}>Skills</h3>
@@ -285,7 +270,6 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
           </div>
         )}
 
-        {/* Languages */}
         {languages && languages.length > 0 && (
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-widest border-b pb-1.5 mb-2.5" style={{ color: accentColor, borderColor: `${accentColor}33` }}>Languages</h3>
@@ -303,7 +287,6 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
         )}
       </div>
 
-      {/* Right Column main info */}
       <div className="col-span-8 p-8 bg-slate-50 flex flex-col gap-6">
         {personalInfo?.summary && (
           <div>
@@ -389,7 +372,7 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
                     <EditableText value={edu.institution} path={['education', idx, 'institution']} onChange={onChange} placeholder="School" />
                   </div>
                   {edu.description && (
-                    <p className="text-slate-505 mt-1 text-[10px]">
+                    <p className="text-slate-550 mt-1 text-[10px]">
                       <EditableText value={edu.description} path={['education', idx, 'description']} onChange={onChange} />
                     </p>
                   )}
@@ -400,7 +383,6 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
           </div>
         )}
 
-        {/* Custom Sections */}
         {customSections && customSections.map((sec, secIdx) => (
           <div key={sec.id || secIdx}>
             <h3 className="text-[10px] font-black uppercase tracking-wider text-[#0f172a] border-b-2 border-slate-200 pb-1 mb-2">
@@ -416,13 +398,11 @@ const ModernTemplate = ({ data, accentColor, onChange }) => {
   );
 };
 
-// 3. Creative Resume Template (Top Header with visual colors & grid)
 const CreativeTemplate = ({ data, accentColor, onChange }) => {
   const { personalInfo, education = [], experience = [], skills = [], projects = [], languages = [], customSections = [] } = data || {};
 
   return (
-    <div className="bg-white text-[#475569] p-8 min-h-[842px] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto relative border-t-8" style={{ borderTopColor: accentColor }}>
-      {/* Top Header Card */}
+    <div className="bg-white text-[#475569] p-8 h-[297mm] min-h-[297mm] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto relative border-t-8 border-gray-200 overflow-hidden" style={{ borderTopColor: accentColor }}>
       <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-1">
@@ -441,9 +421,7 @@ const CreativeTemplate = ({ data, accentColor, onChange }) => {
         <CustomFieldsView fields={personalInfo?.customFields} pathPrefix={['personalInfo', 'customFields']} onChange={onChange} />
       </div>
 
-      {/* Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column content details */}
         <div className="md:col-span-2 space-y-6">
           {personalInfo?.summary && (
             <div>
@@ -516,7 +494,6 @@ const CreativeTemplate = ({ data, accentColor, onChange }) => {
             </div>
           )}
 
-          {/* Custom Sections */}
           {customSections && customSections.map((sec, secIdx) => (
             <div key={sec.id || secIdx}>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-l-4 pl-2 mb-2" style={{ borderColor: accentColor }}>
@@ -529,7 +506,6 @@ const CreativeTemplate = ({ data, accentColor, onChange }) => {
           ))}
         </div>
 
-        {/* Right Column sidebar details */}
         <div className="space-y-6">
           {skills && skills.length > 0 && (
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -571,7 +547,6 @@ const CreativeTemplate = ({ data, accentColor, onChange }) => {
             </div>
           )}
 
-          {/* Languages */}
           {languages && languages.length > 0 && (
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
               <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-l-4 pl-2 mb-3" style={{ borderColor: accentColor }}>Languages</h2>
