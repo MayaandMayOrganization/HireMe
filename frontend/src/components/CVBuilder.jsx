@@ -27,15 +27,11 @@ const CVBuilder = ({ onBack, onLogout }) => {
   const [previewTheme, setPreviewTheme] = useState('classic');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
   
-  // States: Action Dropdown & Dirty State tracker
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
-
-  // States: Scrollable Tab bar Hover chevrons
   const [isTabHovered, setIsTabHovered] = useState(false);
 
-  // Close dropdown menu when clicking outside
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (showActionMenu && !document.getElementById('action-dropdown-container')?.contains(e.target)) {
@@ -46,7 +42,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     return () => document.removeEventListener('click', handleOutsideClick);
   }, [showActionMenu]);
 
-  // Intercept navigation
   const handleBackClick = () => {
     if (isDirty) {
       setShowUnsavedModal(true);
@@ -55,10 +50,8 @@ const CVBuilder = ({ onBack, onLogout }) => {
     }
   };
 
-  // Custom Fields state handlers
   const addCustomField = (category, index) => {
     setIsDirty(true);
-    // Fix: Dynamic field name is initialized as empty ("") to support HTML placeholder
     const newField = { label: '', value: '' };
     if (category === 'personal') {
       setCvData(prev => ({
@@ -146,7 +139,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     }
   };
 
-  // Languages handlers
   const addLanguage = (language, level) => {
     if (!language.trim()) return;
     setIsDirty(true);
@@ -164,7 +156,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     }));
   };
 
-  // Custom Sections handlers
   const handleAddCustomSection = () => {
     setIsDirty(true);
     const id = 'custom_' + Date.now();
@@ -194,7 +185,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     setActiveTab('personal');
   };
 
-  // Inline WYSIWYG mirror state updater callback
   const handleFieldUpdate = (path, value) => {
     setIsDirty(true);
     setCvData(prev => {
@@ -213,7 +203,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     });
   };
 
-  // PDF Export integration with border/shadow stripping and oklch color converter
   const handleExportPDF = () => {
     const element = document.getElementById('cv-print-area');
     if (!element) {
@@ -221,7 +210,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
       return;
     }
     
-    // Temporarily strip margins, frames, borders, and shadows to prevent rendering boxes on PDF
     const firstChild = element.firstElementChild;
     let originalClasses = '';
     if (firstChild) {
@@ -245,13 +233,26 @@ const CVBuilder = ({ onBack, onLogout }) => {
         backgroundColor: '#ffffff',
         logging: false,
         onclone: (clonedDoc) => {
-          // Inject style tag to override Tailwind CSS variables from oklch to standard hex colors for the clone
+          const clonedPrintArea = clonedDoc.getElementById('cv-print-area');
+          if (clonedPrintArea && clonedPrintArea.firstElementChild) {
+            const resumeNode = clonedPrintArea.firstElementChild;
+            resumeNode.style.height = '297mm';
+            resumeNode.style.minHeight = '297mm';
+            resumeNode.style.maxHeight = '297mm';
+            resumeNode.style.overflow = 'hidden';
+
+            const leftSidebar = resumeNode.querySelector('.col-span-4');
+            if (leftSidebar) {
+              leftSidebar.style.height = '297mm';
+              leftSidebar.style.minHeight = '297mm';
+            }
+          }
+
           const style = clonedDoc.createElement('style');
           style.innerHTML = `
             #cv-print-area {
               --color-white: #ffffff !important;
               --color-black: #000000 !important;
-              
               --color-slate-50: #f8fafc !important;
               --color-slate-100: #f1f5f9 !important;
               --color-slate-200: #e2e8f0 !important;
@@ -262,7 +263,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               --color-slate-700: #334155 !important;
               --color-slate-800: #1e293b !important;
               --color-slate-900: #0f172a !important;
-              
               --color-gray-50: #f9fafb !important;
               --color-gray-100: #f3f4f6 !important;
               --color-gray-200: #e5e7eb !important;
@@ -279,8 +279,8 @@ const CVBuilder = ({ onBack, onLogout }) => {
         }
       },
       jsPDF: { 
-        unit: 'px', 
-        format: [800, element.offsetHeight], 
+        unit: 'mm', 
+        format: 'a4', 
         orientation: 'portrait' 
       }
     };
@@ -288,7 +288,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     setTimeout(() => {
       if (window.html2pdf) {
         window.html2pdf().from(element).set(opt).save().then(() => {
-          // Restore styling
           if (firstChild) {
             firstChild.className = originalClasses;
             firstChild.style.border = '';
@@ -310,10 +309,9 @@ const CVBuilder = ({ onBack, onLogout }) => {
           firstChild.style.boxShadow = '';
         }
       }
-    }, 150);
+    }, 300);
   };
 
-  // Smart CV Import (AI-Powered file parsing)
   const handleImportCV = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -324,8 +322,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
 
       if (file.name.endsWith('.pdf')) {
         const arrayBuffer = await file.arrayBuffer();
-        
-        // Absolute Resolution of PDF.js Worker setup bug: wait/load if not ready
         let pdfjsLib = window['pdfjs-dist/build/pdf'] || window['pdfjsLib'];
         if (!pdfjsLib) {
           setStatusMessage('Loading PDF parser library...');
@@ -495,7 +491,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     return { isValid, errors: valErrors };
   };
 
-  // Fetch saved CV on mount
   useEffect(() => {
     const loadSavedCV = async () => {
       try {
@@ -522,7 +517,7 @@ const CVBuilder = ({ onBack, onLogout }) => {
             if (data.cv.skills) {
               setSkillsInput(data.cv.skills.join(', '));
             }
-            setIsDirty(false); // Clean on mount fetch
+            setIsDirty(false);
           }
           if (data?.analysis) {
             setAnalysis(data.analysis);
@@ -535,7 +530,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
     loadSavedCV();
   }, []);
 
-  // Handle Scroll & Flash Outline from navigation parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const highlight = params.get('highlight');
@@ -626,7 +620,7 @@ const CVBuilder = ({ onBack, onLogout }) => {
       });
       if (response.ok) {
         setStatusMessage('Draft saved successfully!');
-        setIsDirty(false); // Reset dirty tracker
+        setIsDirty(false);
         setTimeout(() => setStatusMessage(''), 3000);
         return true;
       } else {
@@ -758,7 +752,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
-        /* Selection, Caret & focus ring removals */
         body, div, section, nav, aside, header, footer, button, select, label, .cursor-pointer, [role="button"], .tab-btn, h1, h2, h3, h4, span, legend {
           outline: none !important;
         }
@@ -767,7 +760,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
           box-shadow: none !important;
         }
         
-        /* Explicit CSS styling overrides for html2canvas rendering inside #cv-print-area */
         #cv-print-area {
           background-color: #ffffff !important;
           color: #1e293b !important;
@@ -805,7 +797,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
         #cv-print-area .border-slate-200 { border-color: #e2e8f0 !important; }
         #cv-print-area .border-slate-700 { border-color: #334155 !important; }
 
-        /* Print Styles to target isolated resume node */
         @media print {
           body * {
             visibility: hidden;
@@ -822,7 +813,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
         }
       `}</style>
 
-      {/* Header */}
       <header className="border-b border-[#424858]/20 px-6 h-16 flex items-center justify-between bg-[#080e1c] shrink-0">
         <div className="flex items-center gap-4">
           <button
@@ -853,7 +843,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
             {isAnalyzing ? 'Analyzing...' : 'Run AI Analysis'}
           </button>
 
-          {/* Consolidated Action Dropdown Menu */}
           <div className="relative" id="action-dropdown-container">
             <button
               onClick={() => setShowActionMenu(!showActionMenu)}
@@ -891,18 +880,13 @@ const CVBuilder = ({ onBack, onLogout }) => {
         </div>
       </header>
 
-      {/* Main Split Screen Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Column: Input Form Editor */}
         <div className="w-1/2 flex flex-col border-r border-[#424858]/20 bg-[#0d1c32]">
-          
-          {/* Scrollable Tab bar Horizontally with Hover overlay arrows */}
           <div 
             className="relative flex items-center bg-[#041329] border-b border-[#424858]/20 group"
             onMouseEnter={() => setIsTabHovered(true)}
             onMouseLeave={() => setIsTabHovered(false)}
           >
-            {/* Left navigation arrow button */}
             <button
               type="button"
               onClick={() => scrollTabs('left')}
@@ -913,7 +897,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               <span className="material-symbols-outlined text-base font-black">chevron_left</span>
             </button>
 
-            {/* Tab Selection List */}
             <div 
               id="tabs-scroll-container"
               className="flex-1 flex p-2 gap-1 overflow-x-auto hide-scrollbar scroll-smooth"
@@ -940,8 +923,7 @@ const CVBuilder = ({ onBack, onLogout }) => {
                 </button>
               ))}
 
-              {/* Custom categories tabs */}
-              {(cvData.customSections || []).map((sec, idx) => (
+              {(cvData.customSections || []).map((sec) => (
                 <button
                   key={sec.id}
                   onClick={() => setActiveTab(sec.id)}
@@ -956,7 +938,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                 </button>
               ))}
 
-              {/* Plus Tab to Add Custom Categories - Fixed Hover underline, added glow */}
               <button 
                 onClick={handleAddCustomSection}
                 className="px-3.5 py-2.5 rounded-lg border border-dashed border-[#424858]/40 hover:border-[#46eedd] hover:bg-[#1c2a41]/40 text-[#a5abbd] hover:text-[#46eedd] text-xs font-black transition-all flex items-center justify-center shrink-0 hover:shadow-[0_0_10px_rgba(70,238,221,0.15)] no-underline cursor-pointer"
@@ -966,7 +947,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </button>
             </div>
 
-            {/* Right navigation arrow button */}
             <button
               type="button"
               onClick={() => scrollTabs('right')}
@@ -978,10 +958,8 @@ const CVBuilder = ({ onBack, onLogout }) => {
             </button>
           </div>
 
-          {/* Form Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             
-            {/* PERSONAL INFO */}
             {activeTab === 'personal' && (
               <fieldset id="personal" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Personal Details</legend>
@@ -1040,7 +1018,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Custom Fields list for Personal - Inline Dynamic No-Prompt Edit */}
                 {(cvData.personalInfo?.customFields || []).map((cf, cfIdx) => (
                   <div key={cfIdx} className="flex gap-2 items-end mt-2 animate-fade-in">
                     <div className="w-1/3">
@@ -1074,7 +1051,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                   </div>
                 ))}
 
-                {/* Spacing Optimization Button Line */}
                 <div className="flex justify-end pt-2">
                   <button
                     type="button"
@@ -1098,7 +1074,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </fieldset>
             )}
 
-            {/* EXPERIENCE */}
             {activeTab === 'experience' && (
               <fieldset id="experience" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Work Experience</legend>
@@ -1162,7 +1137,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         </div>
                       </div>
 
-                      {/* Custom Fields list for Experience - Inline No-Prompt edit */}
                       {(exp.customFields || []).map((cf, cfIdx) => (
                         <div key={cfIdx} className="flex gap-2 items-end mt-2 animate-fade-in">
                           <div className="w-1/3">
@@ -1195,7 +1169,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         </div>
                       ))}
 
-                      {/* Spacing Optimization Button Line */}
                       <div className="flex justify-end pt-2">
                         <button
                           type="button"
@@ -1242,7 +1215,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </fieldset>
             )}
 
-            {/* EDUCATION */}
             {activeTab === 'education' && (
               <fieldset id="education" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Education History</legend>
@@ -1294,7 +1266,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         </div>
                       </div>
 
-                      {/* Custom Fields list for Education - Inline No-Prompt edit */}
                       {(edu.customFields || []).map((cf, cfIdx) => (
                         <div key={cfIdx} className="flex gap-2 items-end mt-2 animate-fade-in">
                           <div className="w-1/3">
@@ -1327,7 +1298,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         </div>
                       ))}
 
-                      {/* Spacing Optimization Button Line */}
                       <div className="flex justify-end pt-2">
                         <button
                           type="button"
@@ -1338,7 +1308,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         </button>
                       </div>
 
-                      {/* Education Description Area */}
                       <div>
                         <div className="flex justify-between items-center mb-1.5">
                           <label className="block text-[9px] font-black uppercase text-[#bacac6]">Description / Achievements</label>
@@ -1374,7 +1343,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </fieldset>
             )}
 
-            {/* PROJECTS */}
             {activeTab === 'projects' && (
               <fieldset id="projects" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Technical Projects</legend>
@@ -1415,7 +1383,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         />
                       </div>
 
-                      {/* Custom Fields list for Project - Inline No-Prompt edit */}
                       {(proj.customFields || []).map((cf, cfIdx) => (
                         <div key={cfIdx} className="flex gap-2 items-end mt-2 animate-fade-in">
                           <div className="w-1/3">
@@ -1448,7 +1415,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
                         </div>
                       ))}
 
-                      {/* Spacing Optimization Button Line */}
                       <div className="flex justify-end pt-2">
                         <button
                           type="button"
@@ -1495,7 +1461,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </fieldset>
             )}
 
-            {/* SKILLS */}
             {activeTab === 'skills' && (
               <fieldset id="skills" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Skills & Technologies</legend>
@@ -1521,7 +1486,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </fieldset>
             )}
 
-            {/* LANGUAGES */}
             {activeTab === 'languages' && (
               <fieldset id="languages" className="space-y-4 p-4 rounded-xl bg-[#041329] border border-[#3b4a47]/30 transition-all">
                 <legend className="text-xs font-black uppercase text-[#46eedd] tracking-widest px-2">Languages</legend>
@@ -1590,7 +1554,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </fieldset>
             )}
 
-            {/* CUSTOM DYNAMIC SECTIONS - Inline category creator (No Popups) */}
             {activeTab.startsWith('custom_') && (() => {
               const sec = (cvData.customSections || []).find(s => s.id === activeTab);
               if (!sec) return null;
@@ -1637,9 +1600,7 @@ const CVBuilder = ({ onBack, onLogout }) => {
           </div>
         </div>
 
-        {/* Right Column: Live Preview & AI Feedback Panel */}
         <div className="w-1/2 flex flex-col bg-[#080e1c]">
-          {/* Section Divider or Selector */}
           <div className="flex border-b border-[#424858]/20 bg-[#080e1c] px-6 h-12 items-center justify-between shrink-0 animate-fade-in">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
@@ -1686,11 +1647,11 @@ const CVBuilder = ({ onBack, onLogout }) => {
             </div>
             {analysis && (() => {
               const scoreVal = parseInt(analysis.score, 10) || 0;
-              let scoreColor = 'text-[#10b981] bg-[#10b981]/15 border-[#10b981]/25'; // Green
+              let scoreColor = 'text-[#10b981] bg-[#10b981]/15 border-[#10b981]/25';
               if (scoreVal <= 40) {
-                scoreColor = 'text-[#ef4444] bg-[#ef4444]/15 border-[#ef4444]/25'; // Red
+                scoreColor = 'text-[#ef4444] bg-[#ef4444]/15 border-[#ef4444]/25';
               } else if (scoreVal <= 70) {
-                scoreColor = 'text-[#f97316] bg-[#f97316]/15 border-[#f97316]/25'; // Orange
+                scoreColor = 'text-[#f97316] bg-[#f97316]/15 border-[#f97316]/25';
               }
               return (
                 <div className="flex items-center gap-2">
@@ -1704,7 +1665,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
-            {/* AI Review Drawer */}
             {analysis && (
               <div className="p-4 rounded-xl border border-[#3b4a47]/30 bg-[#041329] space-y-4">
                 <div className="flex justify-between items-center">
@@ -1736,7 +1696,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
               </div>
             )}
 
-            {/* Document Render Canvas Container */}
             <div className="p-1.5 bg-[#12192a] border border-[#424858]/30 rounded-xl max-w-[800px] mx-auto w-full">
               <CVPreviewer theme={previewTheme} accentColor={selectedColor} data={cvData} onChange={handleFieldUpdate} />
             </div>
@@ -1744,7 +1703,6 @@ const CVBuilder = ({ onBack, onLogout }) => {
         </div>
       </div>
 
-      {/* Elegant Unsaved Changes Confirmation Modal */}
       {showUnsavedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-[#0d1c32] border border-[#424858]/40 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl space-y-6 text-center">
