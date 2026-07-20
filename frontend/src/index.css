@@ -29,3 +29,15 @@ body {
   -webkit-backface-visibility: hidden; 
   backface-visibility: hidden;
 }
+
+/* Prevent Caret on non-editable/non-input elements globally via lightweight inheritance */
+body {
+  caret-color: transparent;
+}
+
+/* Enable default cursor text/caret for editable areas */
+input, textarea, [contenteditable], [contenteditable] * {
+  caret-color: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}

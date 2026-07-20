@@ -44,74 +44,111 @@
     "cv": {
       "personalInfo": {
         "fullName": "Maya Geva",
-        "email": "mayage2@mta.ac.il",
-        "phone": "0526415764",
-        "linkedin": "",
+        "email": "mayageva7@gmail.com",
+        "phone": "052-641-5764",
+        "linkedin": "https://www.linkedin.com/in/mayageva/",
         "github": "",
-        "summary": "Full stack developer student. Working with Python and C++."
+        "summary": "Motivated third-year Computer Science student seeking internship or project opportunities to expand technical skills and contribute to impactful engineering teams. I have a solid foundation in C, C++ and Java. Hard-working, detail-oriented, and eager to learn."
       },
       "education": [
         {
-          "institution": "haacademit",
-          "degree": "computer science",
-          "startYear": "",
-          "endYear": "2026",
-          "description": ""
+          "institution": "The Academic College of Tel Aviv–Yaffo",
+          "degree": "B.Sc. in Computer Science",
+          "startYear": "Oct 2023",
+          "endYear": "Present",
+          "description": "Gaining hands-on experience in software development with a focus on writing efficient, maintainable code. Completed coursework in Programming Languages (C, C++, Java, JavaScript), Data Structures, and Algorithms. Developed and managed multiple coding projects using Git and GitHub. Programmed in Linux environments, wrote Bash scripts for task automation and system interaction, and gained hands-on experience working with Docker and VMware. Practiced problem-solving techniques through algorithm challenges and academic projects."
+        },
+        {
+          "institution": "Ben Gurion High School",
+          "degree": "Majored in Physics",
+          "startYear": "Sep 2016",
+          "endYear": "Jun 2019",
+          "description": "Graduated with honors. Completed 5 units in English and 4 units in Mathematics."
         }
       ],
       "experience": [
         {
-          "company": "amdocs",
-          "role": "software engineer",
-          "startDate": "01/01/2020",
-          "endDate": "01/01/2021",
-          "description": "worked with a team on a product"
+          "company": "Menahem Shamgar Accounting & Taxes LTD",
+          "role": "Junior Accountant",
+          "startDate": "Oct 2021",
+          "endDate": "Feb 2024",
+          "description": "Prepared financial reports and organized tax documentation. Strengthened attention to detail, analytical thinking, and time management."
         },
         {
-          "company": "a company",
-          "role": " ROLE",
-          "startDate": "",
-          "endDate": "",
-          "description": ""
+          "company": "Military Police Criminal Investigation, IDF",
+          "role": "Intelligence Specialist",
+          "startDate": "Aug 2019",
+          "endDate": "Apr 2022",
+          "description": "Supported investigations through intelligence gathering and data analysis. Processed classified information with accuracy and confidentiality."
         }
       ],
       "skills": [
-        "Python",
+        "Analytical Thinking",
+        "C",
+        "C++",
+        "Java",
+        "JavaScript",
+        "Attention to Detail",
         "Docker",
-        "React"
+        "Problem Solving",
+        "Git",
+        "Team Collaboration",
+        "Bash Scripting"
       ],
-      "projects": []
+      "projects": [
+        {
+          "title": "DonkeyKong",
+          "description": "Developed an old-school DonkeyKong-style game as a final project using C++ and object-oriented design principles.",
+          "technologies": [
+            "C++"
+          ]
+        },
+        {
+          "title": "S-Emulator",
+          "description": "Developing an S-Emulator in Java with emphasis on emulator engine implementation, XML parsing/validation, and GUI integration using JavaFX.",
+          "technologies": [
+            "Java",
+            "XML",
+            "JavaFX"
+          ]
+        }
+      ],
+      "languages": [],
+      "customSections": [],
+      "theme": "modern",
+      "accentColor": "#10b981"
     },
     "analysis": {
-      "score": 30,
+      "score": 65,
       "strengths": [
-        "Includes relevant technical skills such as Python, Docker, and React.",
-        "Has professional experience as a software engineer at a recognized company.",
-        "Pursuing a degree in computer science, indicating ongoing education in the field."
+        "Clear listing of relevant programming languages and tools such as C, C++, Java, Docker, and Git.",
+        "Education section includes detailed coursework and practical experience with technologies like Docker and Bash scripting.",
+        "Projects demonstrate application of programming skills in C++ and Java with specific technologies mentioned.",
+        "Experience descriptions highlight transferable skills such as attention to detail, analytical thinking, and confidentiality."
       ],
       "suggestions": [
         {
           "category": "personal",
-          "issue": "Summary is very brief and lacks impact.",
-          "fix": "Expand the summary to include specific achievements, technologies used, and career goals to make it more compelling."
-        },
-        {
-          "category": "education",
-          "issue": "Education section lacks start year and description.",
-          "fix": "Add the start year and include relevant coursework, projects, or academic achievements to strengthen this section."
+          "issue": "Summary is generic and lacks impact-oriented wording or quantifiable achievements.",
+          "fix": "Rewrite the summary to include strong action verbs and specific accomplishments or goals, e.g., 'Developed X projects using C++ improving Y by Z%.'"
         },
         {
           "category": "experience",
-          "issue": "Experience descriptions are vague and lack quantifiable impact.",
-          "fix": "Use strong action verbs and include specific contributions, technologies used, and measurable results for each role."
+          "issue": "Experience descriptions are vague and lack quantifiable results or clear impact.",
+          "fix": "Enhance each experience entry by adding specific achievements, metrics, or outcomes, e.g., 'Prepared 50+ financial reports monthly, reducing errors by 15%.'"
         },
         {
           "category": "projects",
-          "issue": "No projects listed to demonstrate skills.",
-          "fix": "Add detailed project descriptions that showcase the use of claimed skills like Python, Docker, and React with measurable outcomes."
+          "issue": "Project descriptions are brief and do not quantify impact or challenges solved.",
+          "fix": "Expand project descriptions to include measurable results, challenges overcome, or user impact, e.g., 'Implemented game mechanics improving user engagement by X%.'"
+        },
+        {
+          "category": "skills",
+          "issue": "Skills list mixes soft skills and technical skills without differentiation or proficiency levels.",
+          "fix": "Separate technical and soft skills, and consider adding proficiency levels or experience context to strengthen the skills section."
         }
       ],
-      "analyzedAt": "2026-07-16T16:18:01.526Z",
+      "analyzedAt": "2026-07-20T07:06:41.507Z",
       "isMockFallback": false
     }
   }

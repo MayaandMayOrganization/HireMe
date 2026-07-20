@@ -8,6 +8,61 @@ dotenv.config({ path: resolve(__dirname, '../.env') })
 
 const DB_PATH = resolve(__dirname, '../dev_cv_db.json')
 
+const getMockPolishedText = (text) => {
+  if (!text || text.trim().length === 0) return "Developed and optimized scalable web applications.";
+  const trimmed = text.trim();
+  let mock = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  if (!mock.endsWith('.')) mock += '.';
+  if (!mock.toLowerCase().includes('led') && !mock.toLowerCase().includes('engineered') && !mock.toLowerCase().includes('implemented') && !mock.toLowerCase().includes('optimized')) {
+    mock = "Engineered and optimized: " + mock;
+  }
+  return mock + " (AI Polish Fallback)";
+};
+
+const getMockImportFallback = (text) => {
+  return {
+    personalInfo: {
+      fullName: "Maya Geva",
+      email: "maya@example.com",
+      phone: "050-1234567",
+      linkedin: "linkedin.com/in/mayageva",
+      github: "github.com/mayageva",
+      summary: "Software engineering student with hands-on experience in full-stack web development."
+    },
+    skills: ["React", "Node.js", "Python", "C++", "AWS"],
+    experience: [
+      {
+        company: "Amdocs",
+        role: "Software Developer Intern",
+        startDate: "2025-06",
+        endDate: "Present",
+        description: "Implemented high-performance Node.js APIs and enhanced React UI responsiveness. Collaborated on cloud deployment setups."
+      }
+    ],
+    education: [
+      {
+        institution: "MTA College",
+        degree: "B.Sc. Computer Science",
+        startYear: "2023",
+        endYear: "2026",
+        description: "Focus on Algorithms, Full-Stack Web Development, and AI components."
+      }
+    ],
+    projects: [
+      {
+        title: "HireMe Platform",
+        description: "Designed an AI mock interview application using React and OpenAI integrations.",
+        technologies: ["React", "Vite", "Node.js", "OpenAI"]
+      }
+    ],
+    languages: [
+      { language: "Hebrew", level: "Native" },
+      { language: "English", level: "Fluent" }
+    ],
+    customSections: []
+  };
+};
+
 async function analyzeCvWithOpenAI(cvData) {
   const apiKey = process.env.OPENAI_API_KEY
   const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
@@ -44,7 +99,7 @@ async function analyzeCvWithOpenAI(cvData) {
       suggestions.push({
         category: "experience",
         issue: "No work experience section listed.",
-        fix: "Add any past internships, freelance work, or junior roles to demonstrate practical background."
+        focus: "Add any past internships, freelance work, or junior roles to demonstrate practical background."
       });
     } else {
       score += 5;
@@ -100,17 +155,6 @@ async function analyzeCvWithOpenAI(cvData) {
       analyzedAt: new Date().toISOString(),
       isMockFallback: true
     };
-  };
-
-  const getMockPolishedText = (text) => {
-    if (!text || text.trim().length === 0) return "Developed and optimized scalable web applications.";
-    const trimmed = text.trim();
-    let mock = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-    if (!mock.endsWith('.')) mock += '.';
-    if (!mock.toLowerCase().includes('led') && !mock.toLowerCase().includes('engineered') && !mock.toLowerCase().includes('implemented') && !mock.toLowerCase().includes('optimized')) {
-      mock = "Engineered and optimized: " + mock;
-    }
-    return mock + " (AI Polish Fallback)";
   };
 
   if (!apiKey) {
@@ -277,6 +321,7 @@ export function devCvServicePlugin() {
         const username = extractUsername(req)
         const isAnalyze = req.url.startsWith('/api/cv/analyze')
         const isPolish = req.url.startsWith('/api/cv/polish')
+        const isImport = req.url.startsWith('/api/cv/import')
  
         try {
           if (req.method === 'GET') {
@@ -285,6 +330,113 @@ export function devCvServicePlugin() {
             res.setHeader('Content-Type', 'application/json')
             res.end(JSON.stringify(userData))
             return
+          }
+
+          if (req.method === 'POST' && isImport) {
+            const body = await readJsonBody(req)
+            const cvText = body.text || ''
+            
+            const apiKey = process.env.OPENAI_API_KEY
+            const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
+            
+            console.log(`[dev-cv-service] Parsing CV text with OpenAI. Model: ${model}`);
+            
+            let parsedCv = null;
+            
+            if (!apiKey) {
+              console.warn('[dev-cv-service] OPENAI_API_KEY is not set for parsing. Using local mock fallback.');
+              parsedCv = getMockImportFallback(cvText);
+            } else {
+              try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                  },
+                  body: JSON.stringify({
+                    model,
+                    messages: [
+                      {
+                        role: 'system',
+                        content: `You are an AI assistant that parses unstructured resume text and converts it into our exact CV JSON schema.
+You must output a JSON object conforming exactly to this structure:
+{
+  "personalInfo": {
+    "fullName": "Candidate's full name",
+    "email": "Candidate's email",
+    "phone": "Candidate's phone number",
+    "linkedin": "LinkedIn URL",
+    "github": "GitHub URL",
+    "summary": "Professional profile summary"
+  },
+  "skills": ["Skill 1", "Skill 2", ...],
+  "experience": [
+    {
+      "company": "Company Name",
+      "role": "Role / Title",
+      "startDate": "Start Date",
+      "endDate": "End Date or Present",
+      "description": "Details about responsibilities and achievements"
+    },
+    ...
+  ],
+  "education": [
+    {
+      "institution": "School / University Name",
+      "degree": "Degree / Focus",
+      "startYear": "Start Year",
+      "endYear": "End Year",
+      "description": "Details about relevant coursework or achievements"
+    },
+    ...
+  ],
+  "projects": [
+    {
+      "title": "Project Title",
+      "description": "Project details",
+      "technologies": ["Tech 1", "Tech 2", ...]
+    },
+    ...
+  ]
+}
+
+Ensure all fields map correctly from the unstructured text. If some information is not present, use an empty string or empty array.
+Do not output any markdown formatting, backticks, prefix, or suffix. Output only the raw JSON.`
+                      },
+                      {
+                        role: 'user',
+                        content: cvText
+                      }
+                    ],
+                    response_format: { type: 'json_object' },
+                    temperature: 0.2
+                  })
+                });
+
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  console.error("OpenAI Parse Fallback Triggered. Original Error Status:", response.status, "Body:", errorText);
+                  console.warn(`[dev-cv-service] OpenAI returned error ${response.status}: ${errorText}. Falling back to mock import.`);
+                  parsedCv = getMockImportFallback(cvText);
+                } else {
+                  const data = await response.json();
+                  const content = data.choices?.[0]?.message?.content?.trim();
+                  if (!content) {
+                    throw new Error('OpenAI returned an empty response');
+                  }
+                  parsedCv = JSON.parse(content);
+                }
+              } catch (err) {
+                console.error("OpenAI Parse Fallback Triggered. Original Error:", err);
+                console.warn(`[dev-cv-service] Exception during OpenAI parsing: ${err.message}. Falling back to mock import.`);
+                parsedCv = getMockImportFallback(cvText);
+              }
+            }
+            
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ cv: parsedCv }));
+            return;
           }
 
           if (req.method === 'POST' && isPolish) {

@@ -1,41 +1,83 @@
 import React from 'react';
 
+// 0. Inline Editable Text Wrapper helper
+const EditableText = ({ value, path, onChange, className, style, placeholder = "[Click to edit]" }) => {
+  const handleBlur = (e) => {
+    const text = e.currentTarget.innerText.trim();
+    if (onChange) {
+      onChange(path, text);
+    }
+  };
+
+  if (!onChange) {
+    return <span className={className} style={style}>{value || ''}</span>;
+  }
+
+  return (
+    <span
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={handleBlur}
+      className={`${className} outline-none focus:bg-slate-100 hover:bg-slate-50/50 p-0.5 rounded transition-colors cursor-text min-w-[20px] inline-block`}
+      style={style}
+    >
+      {value || placeholder}
+    </span>
+  );
+};
+
+// Custom fields renderer helper
+const CustomFieldsView = ({ fields, pathPrefix, onChange }) => {
+  if (!fields || fields.length === 0) return null;
+  return (
+    <div className="mt-2 space-y-1 border-t border-gray-100 pt-1">
+      {fields.map((cf, idx) => (
+        <div key={idx} className="text-xs text-slate-600">
+          <strong className="font-semibold text-slate-800">{cf.label}:</strong>{' '}
+          <EditableText value={cf.value} path={[...pathPrefix, idx, 'value']} onChange={onChange} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // 1. Classic Resume Template
-const ClassicTemplate = ({ data, accentColor }) => {
-  const { personalInfo, education = [], experience = [], skills = [], projects = [] } = data || {};
+const ClassicTemplate = ({ data, accentColor, onChange }) => {
+  const { personalInfo, education = [], experience = [], skills = [], projects = [], languages = [], customSections = [] } = data || {};
 
   return (
     <div className="bg-white text-[#1e293b] p-8 min-h-[842px] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto border border-gray-200">
       {/* Header */}
       <div className="pb-4 mb-6 border-b-2" style={{ borderColor: accentColor }}>
         <h1 className="text-2xl font-bold tracking-tight text-[#041329] uppercase mb-1">
-          {personalInfo?.fullName || 'Full Name'}
+          <EditableText value={personalInfo?.fullName} path={['personalInfo', 'fullName']} onChange={onChange} placeholder="Full Name" />
         </h1>
         <p className="text-sm font-semibold mb-3" style={{ color: accentColor }}>
-          {personalInfo?.summary ? personalInfo.summary.split('.')[0] : 'Professional Profile'}
+          <EditableText value={personalInfo?.summary ? personalInfo.summary.split('.')[0] : ''} path={['personalInfo', 'summary']} onChange={onChange} placeholder="Professional Profile Title" />
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-gray-500 font-mono">
           {personalInfo?.email && (
             <span className="flex items-center gap-1">
-              Email: <span className="text-[#1e293b]">{personalInfo.email}</span>
+              Email: <span className="text-[#1e293b]"><EditableText value={personalInfo.email} path={['personalInfo', 'email']} onChange={onChange} /></span>
             </span>
           )}
           {personalInfo?.phone && (
             <span className="flex items-center gap-1">
-              Phone: <span className="text-[#1e293b]">{personalInfo.phone}</span>
+              Phone: <span className="text-[#1e293b]"><EditableText value={personalInfo.phone} path={['personalInfo', 'phone']} onChange={onChange} /></span>
             </span>
           )}
           {personalInfo?.linkedin && (
             <span className="flex items-center gap-1">
-              LinkedIn: <span className="text-[#1e293b]">{personalInfo.linkedin}</span>
+              LinkedIn: <span className="text-[#1e293b]"><EditableText value={personalInfo.linkedin} path={['personalInfo', 'linkedin']} onChange={onChange} /></span>
             </span>
           )}
           {personalInfo?.github && (
             <span className="flex items-center gap-1">
-              GitHub: <span className="text-[#1e293b]">{personalInfo.github}</span>
+              GitHub: <span className="text-[#1e293b]"><EditableText value={personalInfo.github} path={['personalInfo', 'github']} onChange={onChange} /></span>
             </span>
           )}
         </div>
+        <CustomFieldsView fields={personalInfo?.customFields} pathPrefix={['personalInfo', 'customFields']} onChange={onChange} />
       </div>
 
       {/* Summary */}
@@ -44,7 +86,9 @@ const ClassicTemplate = ({ data, accentColor }) => {
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
             Professional Summary
           </h2>
-          <p className="text-gray-600 text-justify">{personalInfo.summary}</p>
+          <p className="text-gray-600 text-justify">
+            <EditableText value={personalInfo.summary} path={['personalInfo', 'summary']} onChange={onChange} />
+          </p>
         </div>
       )}
 
@@ -58,12 +102,22 @@ const ClassicTemplate = ({ data, accentColor }) => {
             {experience.map((exp, idx) => (
               <div key={idx} className="relative">
                 <div className="flex justify-between font-semibold text-gray-800">
-                  <span>{exp.role || 'Role'} <span className="text-gray-400 font-normal">at</span> {exp.company || 'Company'}</span>
-                  <span className="text-[10px] text-gray-500 font-mono">{exp.startDate || 'Start'} – {exp.endDate || 'Present'}</span>
+                  <span>
+                    <EditableText value={exp.role} path={['experience', idx, 'role']} onChange={onChange} placeholder="Role" />{' '}
+                    <span className="text-gray-400 font-normal">at</span>{' '}
+                    <EditableText value={exp.company} path={['experience', idx, 'company']} onChange={onChange} placeholder="Company" />
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    <EditableText value={exp.startDate} path={['experience', idx, 'startDate']} onChange={onChange} /> –{' '}
+                    <EditableText value={exp.endDate} path={['experience', idx, 'endDate']} onChange={onChange} />
+                  </span>
                 </div>
                 {exp.description && (
-                  <p className="text-gray-600 mt-1 whitespace-pre-line">{exp.description}</p>
+                  <p className="text-gray-600 mt-1 whitespace-pre-line">
+                    <EditableText value={exp.description} path={['experience', idx, 'description']} onChange={onChange} />
+                  </p>
                 )}
+                <CustomFieldsView fields={exp.customFields} pathPrefix={['experience', idx, 'customFields']} onChange={onChange} />
               </div>
             ))}
           </div>
@@ -80,7 +134,9 @@ const ClassicTemplate = ({ data, accentColor }) => {
             {projects.map((proj, idx) => (
               <div key={idx}>
                 <div className="flex justify-between font-semibold text-gray-800">
-                  <span>{proj.title || 'Project Title'}</span>
+                  <span>
+                    <EditableText value={proj.title} path={['projects', idx, 'title']} onChange={onChange} placeholder="Project Title" />
+                  </span>
                   {proj.technologies && proj.technologies.length > 0 && (
                     <span className="text-[9px] font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                       {proj.technologies.join(', ')}
@@ -88,8 +144,11 @@ const ClassicTemplate = ({ data, accentColor }) => {
                   )}
                 </div>
                 {proj.description && (
-                  <p className="text-gray-600 mt-1 whitespace-pre-line">{proj.description}</p>
+                  <p className="text-gray-600 mt-1 whitespace-pre-line">
+                    <EditableText value={proj.description} path={['projects', idx, 'description']} onChange={onChange} />
+                  </p>
                 )}
+                <CustomFieldsView fields={proj.customFields} pathPrefix={['projects', idx, 'customFields']} onChange={onChange} />
               </div>
             ))}
           </div>
@@ -106,13 +165,23 @@ const ClassicTemplate = ({ data, accentColor }) => {
             {education.map((edu, idx) => (
               <div key={idx}>
                 <div className="flex justify-between font-semibold text-gray-800">
-                  <span>{edu.degree || 'Degree / Diploma'}</span>
-                  <span className="text-[10px] text-gray-500 font-mono">{edu.startYear || 'Start'} – {edu.endYear || 'End'}</span>
+                  <span>
+                    <EditableText value={edu.degree} path={['education', idx, 'degree']} onChange={onChange} placeholder="Degree" />
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    <EditableText value={edu.startYear} path={['education', idx, 'startYear']} onChange={onChange} /> –{' '}
+                    <EditableText value={edu.endYear} path={['education', idx, 'endYear']} onChange={onChange} />
+                  </span>
                 </div>
-                <div className="text-gray-500 text-[10px]">{edu.institution || 'School Name'}</div>
+                <div className="text-gray-500 text-[10px]">
+                  <EditableText value={edu.institution} path={['education', idx, 'institution']} onChange={onChange} placeholder="School" />
+                </div>
                 {edu.description && (
-                  <p className="text-gray-600 mt-1">{edu.description}</p>
+                  <p className="text-gray-600 mt-1">
+                    <EditableText value={edu.description} path={['education', idx, 'description']} onChange={onChange} />
+                  </p>
                 )}
+                <CustomFieldsView fields={edu.customFields} pathPrefix={['education', idx, 'customFields']} onChange={onChange} />
               </div>
             ))}
           </div>
@@ -121,7 +190,7 @@ const ClassicTemplate = ({ data, accentColor }) => {
 
       {/* Skills */}
       {skills && skills.length > 0 && (
-        <div>
+        <div className="mb-6">
           <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-1">
             Skills & Competencies
           </h2>
@@ -137,13 +206,44 @@ const ClassicTemplate = ({ data, accentColor }) => {
           </div>
         </div>
       )}
+
+      {/* Languages */}
+      {languages && languages.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
+            Languages
+          </h2>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {languages.map((lang, idx) => (
+              <span key={idx} className="bg-gray-55 text-[#041329] px-2.5 py-1 rounded text-[10px] font-medium border border-gray-200">
+                <EditableText value={lang.language} path={['languages', idx, 'language']} onChange={onChange} />{' '}
+                <span className="text-gray-400 ml-1">
+                  (<EditableText value={lang.level} path={['languages', idx, 'level']} onChange={onChange} />)
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Sections */}
+      {customSections && customSections.map((sec, secIdx) => (
+        <div key={sec.id || secIdx} className="mb-6">
+          <h2 className="text-[11px] font-black uppercase tracking-wider text-[#041329] border-b border-gray-200 pb-1 mb-2">
+            <EditableText value={sec.title} path={['customSections', secIdx, 'title']} onChange={onChange} placeholder="New Section" />
+          </h2>
+          <p className="text-gray-600 text-justify whitespace-pre-line">
+            <EditableText value={sec.content} path={['customSections', secIdx, 'content']} onChange={onChange} />
+          </p>
+        </div>
+      ))}
     </div>
   );
 };
 
 // 2. Modern Resume Template (Sidebar Column Layout)
-const ModernTemplate = ({ data, accentColor }) => {
-  const { personalInfo, education = [], experience = [], skills = [], projects = [] } = data || {};
+const ModernTemplate = ({ data, accentColor, onChange }) => {
+  const { personalInfo, education = [], experience = [], skills = [], projects = [], languages = [], customSections = [] } = data || {};
 
   return (
     <div className="bg-white text-[#334155] min-h-[842px] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto border border-gray-200 grid grid-cols-12">
@@ -154,7 +254,7 @@ const ModernTemplate = ({ data, accentColor }) => {
             {personalInfo?.fullName ? (personalInfo.fullName.split(' ').map(n => n[0]).join('').toUpperCase()) : 'CV'}
           </div>
           <h2 className="text-sm font-black uppercase tracking-wider text-white">
-            {personalInfo?.fullName || 'Full Name'}
+            <EditableText value={personalInfo?.fullName} path={['personalInfo', 'fullName']} onChange={onChange} placeholder="Name" />
           </h2>
           <span className="text-[9px] font-bold uppercase tracking-widest mt-1" style={{ color: accentColor }}>Candidate</span>
         </div>
@@ -163,11 +263,12 @@ const ModernTemplate = ({ data, accentColor }) => {
         <div>
           <h3 className="text-[10px] font-black uppercase tracking-widest border-b pb-1.5 mb-2.5" style={{ color: accentColor, borderColor: `${accentColor}33` }}>Contact</h3>
           <ul className="space-y-2 text-[9px] font-mono text-slate-300">
-            {personalInfo?.email && <li className="break-all">✉ {personalInfo.email}</li>}
-            {personalInfo?.phone && <li>☎ {personalInfo.phone}</li>}
-            {personalInfo?.linkedin && <li className="break-all">🔗 {personalInfo.linkedin}</li>}
-            {personalInfo?.github && <li className="break-all">💻 {personalInfo.github}</li>}
+            {personalInfo?.email && <li>✉ <EditableText value={personalInfo.email} path={['personalInfo', 'email']} onChange={onChange} /></li>}
+            {personalInfo?.phone && <li>☎ <EditableText value={personalInfo.phone} path={['personalInfo', 'phone']} onChange={onChange} /></li>}
+            {personalInfo?.linkedin && <li>🔗 <EditableText value={personalInfo.linkedin} path={['personalInfo', 'linkedin']} onChange={onChange} /></li>}
+            {personalInfo?.github && <li>💻 <EditableText value={personalInfo.github} path={['personalInfo', 'github']} onChange={onChange} /></li>}
           </ul>
+          <CustomFieldsView fields={personalInfo?.customFields} pathPrefix={['personalInfo', 'customFields']} onChange={onChange} />
         </div>
 
         {/* Skills pill items */}
@@ -183,6 +284,23 @@ const ModernTemplate = ({ data, accentColor }) => {
             </div>
           </div>
         )}
+
+        {/* Languages */}
+        {languages && languages.length > 0 && (
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest border-b pb-1.5 mb-2.5" style={{ color: accentColor, borderColor: `${accentColor}33` }}>Languages</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {languages.map((lang, idx) => (
+                <span key={idx} className="bg-slate-800 text-slate-205 px-2 py-0.5 rounded text-[9px] font-medium border border-slate-700">
+                  <EditableText value={lang.language} path={['languages', idx, 'language']} onChange={onChange} />{' '}
+                  <span className="text-slate-400 text-[8px]">
+                    (<EditableText value={lang.level} path={['languages', idx, 'level']} onChange={onChange} />)
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Column main info */}
@@ -190,7 +308,9 @@ const ModernTemplate = ({ data, accentColor }) => {
         {personalInfo?.summary && (
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-wider text-[#0f172a] border-b-2 border-slate-200 pb-1 mb-2">Profile Summary</h3>
-            <p className="text-slate-600 text-justify leading-relaxed">{personalInfo.summary}</p>
+            <p className="text-slate-600 text-justify leading-relaxed">
+              <EditableText value={personalInfo.summary} path={['personalInfo', 'summary']} onChange={onChange} />
+            </p>
           </div>
         )}
 
@@ -200,11 +320,23 @@ const ModernTemplate = ({ data, accentColor }) => {
             <div className="space-y-4">
               {experience.map((exp, idx) => (
                 <div key={idx} className="border-l-2 pl-3 py-0.5" style={{ borderColor: accentColor }}>
-                  <div className="flex justify-between font-bold text-slate-850">
-                    <span>{exp.role || 'Role'} <span className="text-slate-400 font-normal">at</span> {exp.company || 'Company'}</span>
-                    <span className="text-[9px] text-slate-500 font-mono">{exp.startDate || 'Start'} – {exp.endDate || 'Present'}</span>
+                  <div className="flex justify-between font-bold text-slate-800">
+                    <span>
+                      <EditableText value={exp.role} path={['experience', idx, 'role']} onChange={onChange} placeholder="Role" />{' '}
+                      <span className="text-slate-400 font-normal">at</span>{' '}
+                      <EditableText value={exp.company} path={['experience', idx, 'company']} onChange={onChange} placeholder="Company" />
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-mono">
+                      <EditableText value={exp.startDate} path={['experience', idx, 'startDate']} onChange={onChange} /> –{' '}
+                      <EditableText value={exp.endDate} path={['experience', idx, 'endDate']} onChange={onChange} />
+                    </span>
                   </div>
-                  {exp.description && <p className="text-slate-600 mt-1 whitespace-pre-line">{exp.description}</p>}
+                  {exp.description && (
+                    <p className="text-slate-600 mt-1 whitespace-pre-line">
+                      <EditableText value={exp.description} path={['experience', idx, 'description']} onChange={onChange} />
+                    </p>
+                  )}
+                  <CustomFieldsView fields={exp.customFields} pathPrefix={['experience', idx, 'customFields']} onChange={onChange} />
                 </div>
               ))}
             </div>
@@ -217,15 +349,22 @@ const ModernTemplate = ({ data, accentColor }) => {
             <div className="space-y-4">
               {projects.map((proj, idx) => (
                 <div key={idx}>
-                  <div className="flex justify-between font-bold text-slate-850">
-                    <span>{proj.title || 'Project'}</span>
+                  <div className="flex justify-between font-bold text-slate-800">
+                    <span>
+                      <EditableText value={proj.title} path={['projects', idx, 'title']} onChange={onChange} placeholder="Project" />
+                    </span>
                     {proj.technologies && proj.technologies.length > 0 && (
                       <span className="text-[9px] font-mono font-bold" style={{ color: accentColor }}>
                         [{proj.technologies.join(', ')}]
                       </span>
                     )}
                   </div>
-                  {proj.description && <p className="text-slate-600 mt-1 whitespace-pre-line">{proj.description}</p>}
+                  {proj.description && (
+                    <p className="text-slate-600 mt-1 whitespace-pre-line">
+                      <EditableText value={proj.description} path={['projects', idx, 'description']} onChange={onChange} />
+                    </p>
+                  )}
+                  <CustomFieldsView fields={proj.customFields} pathPrefix={['projects', idx, 'customFields']} onChange={onChange} />
                 </div>
               ))}
             </div>
@@ -238,25 +377,48 @@ const ModernTemplate = ({ data, accentColor }) => {
             <div className="space-y-3">
               {education.map((edu, idx) => (
                 <div key={idx}>
-                  <div className="flex justify-between font-bold text-slate-855">
-                    <span>{edu.degree || 'Degree'}</span>
-                    <span className="text-[9px] text-slate-500 font-mono">{edu.endYear}</span>
+                  <div className="flex justify-between font-bold text-slate-805">
+                    <span>
+                      <EditableText value={edu.degree} path={['education', idx, 'degree']} onChange={onChange} placeholder="Degree" />
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-mono">
+                      <EditableText value={edu.endYear} path={['education', idx, 'endYear']} onChange={onChange} />
+                    </span>
                   </div>
-                  <div className="text-slate-500 text-[10px] font-medium">{edu.institution}</div>
-                  {edu.description && <p className="text-slate-500 mt-1 text-[10px]">{edu.description}</p>}
+                  <div className="text-slate-500 text-[10px] font-medium">
+                    <EditableText value={edu.institution} path={['education', idx, 'institution']} onChange={onChange} placeholder="School" />
+                  </div>
+                  {edu.description && (
+                    <p className="text-slate-505 mt-1 text-[10px]">
+                      <EditableText value={edu.description} path={['education', idx, 'description']} onChange={onChange} />
+                    </p>
+                  )}
+                  <CustomFieldsView fields={edu.customFields} pathPrefix={['education', idx, 'customFields']} onChange={onChange} />
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Custom Sections */}
+        {customSections && customSections.map((sec, secIdx) => (
+          <div key={sec.id || secIdx}>
+            <h3 className="text-[10px] font-black uppercase tracking-wider text-[#0f172a] border-b-2 border-slate-200 pb-1 mb-2">
+              <EditableText value={sec.title} path={['customSections', secIdx, 'title']} onChange={onChange} placeholder="New Section" />
+            </h3>
+            <p className="text-slate-600 text-justify leading-relaxed whitespace-pre-line">
+              <EditableText value={sec.content} path={['customSections', secIdx, 'content']} onChange={onChange} />
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
 // 3. Creative Resume Template (Top Header with visual colors & grid)
-const CreativeTemplate = ({ data, accentColor }) => {
-  const { personalInfo, education = [], experience = [], skills = [], projects = [] } = data || {};
+const CreativeTemplate = ({ data, accentColor, onChange }) => {
+  const { personalInfo, education = [], experience = [], skills = [], projects = [], languages = [], customSections = [] } = data || {};
 
   return (
     <div className="bg-white text-[#475569] p-8 min-h-[842px] font-sans shadow-xl text-left text-xs leading-relaxed max-w-[800px] mx-auto relative border-t-8" style={{ borderTopColor: accentColor }}>
@@ -264,18 +426,19 @@ const CreativeTemplate = ({ data, accentColor }) => {
       <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shadow-sm">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 mb-1">
-            {personalInfo?.fullName || 'Full Name'}
+            <EditableText value={personalInfo?.fullName} path={['personalInfo', 'fullName']} onChange={onChange} placeholder="Full Name" />
           </h1>
           <p className="text-xs font-black uppercase tracking-widest" style={{ color: accentColor }}>
-            {personalInfo?.summary ? personalInfo.summary.split('.')[0] : 'Creative Professional'}
+            <EditableText value={personalInfo?.summary ? personalInfo.summary.split('.')[0] : ''} path={['personalInfo', 'summary']} onChange={onChange} placeholder="Creative Field" />
           </p>
         </div>
         <div className="flex flex-col gap-1 text-[9px] font-semibold text-slate-500">
-          {personalInfo?.email && <span>✉ {personalInfo.email}</span>}
-          {personalInfo?.phone && <span>☎ {personalInfo.phone}</span>}
-          {personalInfo?.linkedin && <span>🔗 {personalInfo.linkedin}</span>}
-          {personalInfo?.github && <span>💻 {personalInfo.github}</span>}
+          {personalInfo?.email && <span>✉ <EditableText value={personalInfo.email} path={['personalInfo', 'email']} onChange={onChange} /></span>}
+          {personalInfo?.phone && <span>☎ <EditableText value={personalInfo.phone} path={['personalInfo', 'phone']} onChange={onChange} /></span>}
+          {personalInfo?.linkedin && <span>🔗 <EditableText value={personalInfo.linkedin} path={['personalInfo', 'linkedin']} onChange={onChange} /></span>}
+          {personalInfo?.github && <span>💻 <EditableText value={personalInfo.github} path={['personalInfo', 'github']} onChange={onChange} /></span>}
         </div>
+        <CustomFieldsView fields={personalInfo?.customFields} pathPrefix={['personalInfo', 'customFields']} onChange={onChange} />
       </div>
 
       {/* Grid Layout */}
@@ -285,7 +448,9 @@ const CreativeTemplate = ({ data, accentColor }) => {
           {personalInfo?.summary && (
             <div>
               <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-l-4 pl-2 mb-2" style={{ borderColor: accentColor }}>About Me</h2>
-              <p className="text-slate-600 text-justify">{personalInfo.summary}</p>
+              <p className="text-slate-600 text-justify">
+                <EditableText value={personalInfo.summary} path={['personalInfo', 'summary']} onChange={onChange} />
+              </p>
             </div>
           )}
 
@@ -295,11 +460,23 @@ const CreativeTemplate = ({ data, accentColor }) => {
               <div className="space-y-4">
                 {experience.map((exp, idx) => (
                   <div key={idx} className="relative pl-1">
-                    <div className="flex justify-between font-bold text-slate-800">
-                      <span>{exp.role} <span style={{ color: accentColor }}>@</span> {exp.company}</span>
-                      <span className="text-[9px] text-slate-400 font-mono">{exp.startDate} – {exp.endDate}</span>
+                    <div className="flex justify-between font-bold text-slate-805">
+                      <span>
+                        <EditableText value={exp.role} path={['experience', idx, 'role']} onChange={onChange} placeholder="Role" />{' '}
+                        <span className="text-[#3b82f6]">@</span>{' '}
+                        <EditableText value={exp.company} path={['experience', idx, 'company']} onChange={onChange} placeholder="Company" />
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        <EditableText value={exp.startDate} path={['experience', idx, 'startDate']} onChange={onChange} /> –{' '}
+                        <EditableText value={exp.endDate} path={['experience', idx, 'endDate']} onChange={onChange} />
+                      </span>
                     </div>
-                    {exp.description && <p className="text-slate-600 mt-1 whitespace-pre-line">{exp.description}</p>}
+                    {exp.description && (
+                      <p className="text-slate-600 mt-1 whitespace-pre-line">
+                        <EditableText value={exp.description} path={['experience', idx, 'description']} onChange={onChange} />
+                      </p>
+                    )}
+                    <CustomFieldsView fields={exp.customFields} pathPrefix={['experience', idx, 'customFields']} onChange={onChange} />
                   </div>
                 ))}
               </div>
@@ -312,8 +489,10 @@ const CreativeTemplate = ({ data, accentColor }) => {
               <div className="space-y-4">
                 {projects.map((proj, idx) => (
                   <div key={idx}>
-                    <div className="flex justify-between font-bold text-slate-800">
-                      <span>{proj.title}</span>
+                    <div className="flex justify-between font-bold text-slate-805">
+                      <span>
+                        <EditableText value={proj.title} path={['projects', idx, 'title']} onChange={onChange} placeholder="Project" />
+                      </span>
                       <span className="text-[8px] font-mono px-2 py-0.5 rounded-full border" style={{ backgroundColor: `${accentColor}10`, color: accentColor, borderColor: `${accentColor}30` }}>
                         Project
                       </span>
@@ -325,12 +504,29 @@ const CreativeTemplate = ({ data, accentColor }) => {
                         ))}
                       </div>
                     )}
-                    {proj.description && <p className="text-slate-600 mt-1.5 whitespace-pre-line">{proj.description}</p>}
+                    {proj.description && (
+                      <p className="text-slate-600 mt-1.5 whitespace-pre-line">
+                        <EditableText value={proj.description} path={['projects', idx, 'description']} onChange={onChange} />
+                      </p>
+                    )}
+                    <CustomFieldsView fields={proj.customFields} pathPrefix={['projects', idx, 'customFields']} onChange={onChange} />
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Custom Sections */}
+          {customSections && customSections.map((sec, secIdx) => (
+            <div key={sec.id || secIdx}>
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-l-4 pl-2 mb-2" style={{ borderColor: accentColor }}>
+                <EditableText value={sec.title} path={['customSections', secIdx, 'title']} onChange={onChange} placeholder="New Section" />
+              </h2>
+              <p className="text-slate-605 text-justify whitespace-pre-line">
+                <EditableText value={sec.content} path={['customSections', secIdx, 'content']} onChange={onChange} />
+              </p>
+            </div>
+          ))}
         </div>
 
         {/* Right Column sidebar details */}
@@ -354,10 +550,39 @@ const CreativeTemplate = ({ data, accentColor }) => {
               <div className="space-y-3">
                 {education.map((edu, idx) => (
                   <div key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <div className="font-bold text-slate-800 text-[11px]">{edu.degree}</div>
-                    <div className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: accentColor }}>{edu.institution}</div>
-                    <div className="text-[9px] text-slate-400 font-mono mt-1">{edu.endYear}</div>
+                    <div className="font-bold text-slate-800 text-[11px]">
+                      <EditableText value={edu.degree} path={['education', idx, 'degree']} onChange={onChange} placeholder="Degree" />
+                    </div>
+                    <div className="text-[9px] font-black uppercase tracking-wider mt-0.5" style={{ color: accentColor }}>
+                      <EditableText value={edu.institution} path={['education', idx, 'institution']} onChange={onChange} placeholder="School" />
+                    </div>
+                    <div className="text-[9px] text-slate-400 font-mono mt-1">
+                      <EditableText value={edu.endYear} path={['education', idx, 'endYear']} onChange={onChange} />
+                    </div>
+                    {edu.description && (
+                      <p className="text-slate-500 mt-1 text-[10px]">
+                        <EditableText value={edu.description} path={['education', idx, 'description']} onChange={onChange} />
+                      </p>
+                    )}
+                    <CustomFieldsView fields={edu.customFields} pathPrefix={['education', idx, 'customFields']} onChange={onChange} />
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Languages */}
+          {languages && languages.length > 0 && (
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-900 border-l-4 pl-2 mb-3" style={{ borderColor: accentColor }}>Languages</h2>
+              <div className="flex flex-wrap gap-1.5">
+                {languages.map((lang, idx) => (
+                  <span key={idx} className="bg-white text-slate-800 shadow-sm border border-slate-200/60 px-2.5 py-0.5 rounded-full text-[9px] font-bold">
+                    <EditableText value={lang.language} path={['languages', idx, 'language']} onChange={onChange} />{' '}
+                    <span className="text-slate-400 text-[8px] ml-1">
+                      (<EditableText value={lang.level} path={['languages', idx, 'level']} onChange={onChange} />)
+                    </span>
+                  </span>
                 ))}
               </div>
             </div>
@@ -368,17 +593,19 @@ const CreativeTemplate = ({ data, accentColor }) => {
   );
 };
 
-const CVPreviewer = ({ theme = 'classic', accentColor = '#3b82f6', data }) => {
+const CVPreviewer = ({ theme = 'classic', accentColor = '#3b82f6', data, onChange }) => {
   const activeTheme = (theme || 'classic').toLowerCase().trim();
-  switch (activeTheme) {
-    case 'modern':
-      return <ModernTemplate data={data} accentColor={accentColor} />;
-    case 'creative':
-      return <CreativeTemplate data={data} accentColor={accentColor} />;
-    case 'classic':
-    default:
-      return <ClassicTemplate data={data} accentColor={accentColor} />;
-  }
+  return (
+    <div id="cv-print-area">
+      {activeTheme === 'modern' ? (
+        <ModernTemplate data={data} accentColor={accentColor} onChange={onChange} />
+      ) : activeTheme === 'creative' ? (
+        <CreativeTemplate data={data} accentColor={accentColor} onChange={onChange} />
+      ) : (
+        <ClassicTemplate data={data} accentColor={accentColor} onChange={onChange} />
+      )}
+    </div>
+  );
 };
 
 export default CVPreviewer;

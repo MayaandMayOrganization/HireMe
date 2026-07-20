@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 import avatarSimulationPic from '../assets/avatarImage.png'; 
 import cvDraftPic from '../assets/fakeCv.png';
+import CVPreviewer from './CVPreviewer';
 
 const mockData = {
   user: {
@@ -25,6 +26,60 @@ const mockData = {
     "Fix alignment in 'Education' section"
   ]
 };
+
+const CVThumbnail = React.memo(({ cvData, onShowCV }) => {
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(0.3);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const width = entry.contentRect.width;
+        if (width > 0) {
+          setScale(width / 800);
+        }
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="absolute inset-0 bg-white overflow-hidden select-none group-hover:scale-[1.02] transition-transform duration-500"
+      style={{ borderRadius: '12px' }}
+    >
+      <div style={{
+        width: '800px',
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left',
+        pointerEvents: 'none',
+        height: '842px',
+        overflow: 'hidden'
+      }}>
+        <CVPreviewer 
+          theme={cvData.theme} 
+          accentColor={cvData.accentColor} 
+          data={cvData} 
+          onChange={null} 
+        />
+      </div>
+      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
+        <button 
+          onClick={onShowCV} 
+          className="flex items-center gap-2 px-4 py-1.5 bg-[#080e1c] border border-[#5bf4de]/30 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all hover:border-[#5bf4de] text-[#e0e5f9]"
+        >
+          <span className="material-symbols-outlined text-sm text-[#5bf4de]">search</span>
+          Preview Draft
+        </button>
+      </div>
+    </div>
+  );
+});
 
 const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingInterview }) => {
   const [realUser, setRealUser] = useState({ 
@@ -148,6 +203,13 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
         }
         .custom-scroll::-webkit-scrollbar-thumb:hover {
           background: #46eedd !important;
+        }
+        @keyframes pulse-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        .animate-pulse-blink {
+          animation: pulse-blink 1.5s infinite ease-in-out;
         }
       `}</style>
       
@@ -363,11 +425,22 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold">CV Intelligence</h3>
-                  {cvAnalysis && (
-                    <span className="bg-[#4ae183]/15 text-[#4ae183] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#4ae183]/20">
-                      Score: {cvAnalysis.score}/100
-                    </span>
-                  )}
+                  {cvAnalysis && (() => {
+                    const scoreVal = parseInt(cvAnalysis.score, 10) || 0;
+                    let scoreColor = 'text-[#10b981] bg-[#10b981]/15 border-[#10b981]/25'; // Green
+                    let blinkClass = '';
+                    if (scoreVal <= 40) {
+                      scoreColor = 'text-[#ef4444] bg-[#ef4444]/15 border-[#ef4444]/25'; // Red
+                      blinkClass = 'animate-pulse-blink';
+                    } else if (scoreVal <= 70) {
+                      scoreColor = 'text-[#f97316] bg-[#f97316]/15 border-[#f97316]/25'; // Orange
+                    }
+                    return (
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${scoreColor} ${blinkClass}`}>
+                        Score: {cvAnalysis.score}/100
+                      </span>
+                    );
+                  })()}
                 </div>
                 <button onClick={onShowCV} className="relative flex items-center group cursor-pointer bg-transparent border-none text-[#5bf4de] hover:scale-110 transition-transform outline-none">
                   <span className="material-symbols-outlined">post_add</span>
@@ -375,13 +448,7 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
               </div>
               <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-black border border-[#424858]/30 mb-6 group">
                 {hasDraft ? (
-                  <>
-                    <img src={cvDraftPic} className="absolute inset-0 w-full h-full object-cover blur-[1px] opacity-50 group-hover:scale-105 transition-transform duration-700" alt="CV Draft Preview" />
-                    <div className="absolute inset-0 bg-black/40 z-10"></div>
-                    <div className="absolute inset-0 flex items-center justify-center z-20">
-                      <button onClick={onShowCV} className="flex items-center gap-2 px-5 py-2 bg-[#080e1c] border border-[#5bf4de]/30 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all hover:border-[#5bf4de]"><span className="material-symbols-outlined text-base text-[#5bf4de]">search</span>Preview Current Draft</button>
-                    </div>
-                  </>
+                  <CVThumbnail cvData={cvData} onShowCV={onShowCV} />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-[#a5abbd]">
                     <span className="material-symbols-outlined text-4xl mb-3 opacity-20">cloud_upload</span>
@@ -393,51 +460,11 @@ const Dashboard = ({ onStartInterview, onLogout, onShowHR, onShowCV, isStartingI
               <div className="space-y-6 flex-1 flex flex-col justify-between">
                 {cvAnalysis ? (
                   <div className="space-y-6 text-left">
-                    {cvAnalysis?.suggestions?.length > 0 && (
-                      <div className="bg-black/30 border-l-2 border-[#5bf4de] p-4 rounded-r-lg">
-                        <p className="text-xs italic text-[#e0e5f9] leading-relaxed">
-                          "{cvAnalysis.suggestions[0].issue}"
-                        </p>
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#5bf4de]"></div>
-                            <span className="text-[9px] font-black text-[#5bf4de] uppercase">AI Suggestion</span>
-                          </div>
-                          <span className="text-[8px] font-black uppercase text-[#4ae183] bg-[#4ae183]/10 px-2 py-0.5 rounded-full border border-[#4ae183]/15">
-                            {cvAnalysis.suggestions[0].category}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <h4 className="text-[10px] font-black uppercase text-[#a5abbd] mb-3 tracking-widest">Actionable Suggestions</h4>
-                      <ul className="space-y-2 max-h-56 overflow-y-scroll pr-1 custom-scroll">
-                        {(cvAnalysis?.suggestions || []).map((s, i) => (
-                          <li 
-                            key={i} 
-                            onClick={() => handleSuggestionClick(s.category)}
-                            className="flex items-start gap-3 text-xs text-[#e0e5f9] group cursor-pointer bg-black/25 hover:bg-black/45 p-2 rounded-lg border border-[#424858]/10 hover:border-[#5bf4de]/30 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-[#5bf4de] text-sm mt-0.5 group-hover:scale-125 transition-transform">lightbulb</span>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <span className="text-[7px] font-black uppercase text-[#5bf4de] bg-[#5bf4de]/10 px-1.5 py-0.2 rounded">
-                                  {s.category}
-                                </span>
-                              </div>
-                              <span className="group-hover:text-white transition-colors">{s.issue}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
                     <div>
                       <h4 className="text-[10px] font-black uppercase text-[#a5abbd] mb-3 tracking-widest">Key Strengths</h4>
-                      <ul className="space-y-2 max-h-32 overflow-y-scroll pr-1 custom-scroll">
+                      <ul className="space-y-2 max-h-48 overflow-y-scroll pr-1 custom-scroll">
                         {Array.isArray(cvAnalysis?.strengths) && cvAnalysis.strengths.length > 0 ? (
-                          cvAnalysis.strengths.slice(0, 3).map((str, i) => (
+                          cvAnalysis.strengths.slice(0, 5).map((str, i) => (
                             <li key={i} className="flex items-start gap-2.5 text-xs text-[#e0e5f9]">
                               <span className="material-symbols-outlined text-[#4ae183] text-sm mt-0.5">check_circle</span>
                               <span>{str}</span>
