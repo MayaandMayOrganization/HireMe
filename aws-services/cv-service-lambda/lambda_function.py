@@ -251,6 +251,144 @@ def polish_text_with_openai(text: str) -> str:
         print(f"[cv-service-lambda] OpenAI Polish Fallback Triggered. Original Error: {exc}")
         return get_mock_polished_fallback(text)
 
+def parse_cv_text_with_openai(text: str) -> dict:
+    """Parse CV text into structured JSON using OpenAI."""
+    def get_mock_import_fallback() -> dict:
+        return {
+            "personalInfo": {
+                "fullName": "Maya Geva",
+                "email": "maya@example.com",
+                "phone": "050-1234567",
+                "linkedin": "linkedin.com/in/mayageva",
+                "github": "github.com/mayageva",
+                "summary": "Software engineering student with hands-on experience in full-stack web development."
+            },
+            "skills": ["React", "Node.js", "Python", "C++", "AWS"],
+            "experience": [
+                {
+                    "company": "Amdocs",
+                    "role": "Software Developer Intern",
+                    "startDate": "2025-06",
+                    "endDate": "Present",
+                    "description": "Implemented high-performance Node.js APIs and enhanced React UI responsiveness. Collaborated on cloud deployment setups."
+                }
+            ],
+            "education": [
+                {
+                    "institution": "MTA College",
+                    "degree": "B.Sc. Computer Science",
+                    "startYear": "2023",
+                    "endYear": "2026",
+                    "description": "Focus on Algorithms, Full-Stack Web Development, and AI components."
+                }
+            ],
+            "projects": [
+                {
+                    "title": "HireMe Platform",
+                    "description": "Designed an AI mock interview application using React and OpenAI integrations.",
+                    "technologies": ["React", "Vite", "Node.js", "OpenAI"]
+                }
+            ],
+            "languages": [
+                { "language": "Hebrew", "level": "Native" },
+                { "language": "English", "level": "Fluent" }
+              ],
+            "customSections": []
+        }
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("[cv-service-lambda] Warning: OPENAI_API_KEY is not set for parsing. Using local mock fallback.")
+        return get_mock_import_fallback()
+
+    model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+    print(f"[cv-service-lambda] Parsing CV text with OpenAI. Model: {model}")
+
+    try:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        
+        system_prompt = (
+            "You are an AI assistant that parses unstructured resume text and converts it into our exact CV JSON schema. "
+            "You must output a JSON object conforming exactly to this structure: "
+            "{\n"
+            "  \"personalInfo\": {\n"
+            "    \"fullName\": \"Candidate's full name\",\n"
+            "    \"email\": \"Candidate's email\",\n"
+            "    \"phone\": \"Candidate's phone number\",\n"
+            "    \"linkedin\": \"LinkedIn URL\",\n"
+            "    \"github\": \"GitHub URL\",\n"
+            "    \"summary\": \"Professional profile summary\"\n"
+            "  },\n"
+            "  \"skills\": [\"Skill 1\", \"Skill 2\", ...],\n"
+            "  \"experience\": [\n"
+            "    {\n"
+            "      \"company\": \"Company Name\",\n"
+            "      \"role\": \"Role / Title\",\n"
+            "      \"startDate\": \"Start Date\",\n"
+            "      \"endDate\": \"End Date or Present\",\n"
+            "      \"description\": \"Details about responsibilities and achievements\"\n"
+            "    },\n"
+            "    ...\n"
+            "  ],\n"
+            "  \"education\": [\n"
+            "    {\n"
+            "      \"institution\": \"School / University Name\",\n"
+            "      \"degree\": \"Degree / Focus\",\n"
+            "      \"startYear\": \"Start Year\",\n"
+            "      \"endYear\": \"End Year\",\n"
+            "      \"description\": \"Details about relevant coursework or achievements\"\n"
+            "    },\n"
+            "    ...\n"
+            "  ],\n"
+            "  \"projects\": [\n"
+            "    {\n"
+            "      \"title\": \"Project Title\",\n"
+            "      \"description\": \"Project details\",\n"
+            "      \"technologies\": [\"Tech 1\", \"Tech 2\", ...]\n"
+            "    },\n"
+            "    ...\n"
+            "  ]\n"
+            "}\n"
+            "Ensure all fields map correctly from the unstructured text. If some information is not present, use an empty string or empty array. "
+            "Do not output any markdown formatting, backticks, prefix, or suffix. Output only the raw JSON."
+        )
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+            "response_format": { "type": "json_object" },
+            "temperature": 0.2
+        }
+
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST"
+        )
+        
+        with urllib.request.urlopen(req, timeout=12) as response:
+            res_body = json.loads(response.read().decode("utf-8"))
+            content = res_body["choices"][0]["message"]["content"].strip()
+            return json.loads(content)
+
+    except Exception as exc:
+        print(f"[cv-service-lambda] OpenAI Parse Fallback Triggered. Original Error: {exc}")
+        return get_mock_import_fallback()
+
 def get_cognito_jwks(region, user_pool_id):
     """Fetch and cache Cognito JWKS keys."""
     global COGNITO_JWKS
@@ -363,6 +501,7 @@ def lambda_handler(event, context):
         path = event.get("rawPath") or event.get("path") or ""
         is_analyze_path = path.endswith("/analyze")
         is_polish_path = path.endswith("/polish")
+        is_import_path = path.endswith("/import")
  
         # --- GET: Fetch saved CV and Analysis ---
         if method == "GET":
@@ -400,6 +539,15 @@ def lambda_handler(event, context):
                     "statusCode": 200,
                     "headers": CORS_HEADERS,
                     "body": json.dumps({"polished": polished_text}, cls=DecimalEncoder)
+                }
+
+            if is_import_path:
+                text_to_parse = body_json.get("text") or ""
+                parsed_cv = parse_cv_text_with_openai(text_to_parse)
+                return {
+                    "statusCode": 200,
+                    "headers": CORS_HEADERS,
+                    "body": json.dumps({"cv": parsed_cv}, cls=DecimalEncoder)
                 }
                 
             cv_data = body_json
